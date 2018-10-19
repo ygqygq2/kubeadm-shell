@@ -1,0 +1,114 @@
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dev-user1
+  namespace: dev
+
+---
+# role
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: dev
+  name: role-dev-user1
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods/portforward", "pods/proxy"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list", "watch", "delete"]
+- apiGroups: ["extensions", "apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["apps", "extensions"]
+  resources: ["replicasets"]
+  verbs: ["get", "watch", "list", "create", "update", "pathch", "delete"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "watch", "list", "create", "update", "pathch", "delete"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "watch", "list", "create", "update", "pathch", "delete"]
+- apiGroups: ["extensions"]
+  resources: ["ingresses"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["batch"]
+  resources: ["cronjobs"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["replicationcontrollers"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "watch", "list"]
+
+---
+# role bind
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: role-bind-dev-user1
+  namespace: dev
+subjects:
+- kind: ServiceAccount
+  name: dev-user1
+  namespace: dev
+roleRef:
+  kind: Role
+  name: role-dev-user1
+  apiGroup: rbac.authorization.k8s.io
+
+#---
+## clusterrole
+#kind: ClusterRole
+#apiVersion: rbac.authorization.k8s.io/v1
+#metadata:
+#  namespace: dev
+#  name: clusterrole-dev-user1
+#rules:
+#- apiGroups: [""]
+#  resources: ["namespaces"]
+#  verbs: ["get", "watch", "list"]
+#
+#---
+## clusterrole bind
+#kind: ClusterRoleBinding
+#apiVersion: rbac.authorization.k8s.io/v1
+#metadata:
+#  name: clusterrole-bind-dev-user1
+#  namespace: dev
+#subjects:
+#- kind: ServiceAccount
+#  name: dev-user1
+#  namespace: dev
+#roleRef:
+#  kind: ClusterRole
+#  name: clusterrole-dev-user1
+#  apiGroup: rbac.authorization.k8s.io

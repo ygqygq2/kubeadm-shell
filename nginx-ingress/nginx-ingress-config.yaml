@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: dashboard-ingress
+  namespace: kube-system
+spec:
+  tls:
+  - hosts:
+    - k8s.linuxba.com
+    secretName: ingress-secret
+  rules:
+  - host: k8s.linuxba.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: nginx-test
+          servicePort: 80
+
+  #    - path: /nginx
+  #      backend:
+  #        serviceName: nginx
+  #        servicePort: 80

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: kube-router-prometheus-discovery
+  labels:
+    k8s-app: kube-router
+spec:
+  selector:
+    k8s-app: kube-router
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP

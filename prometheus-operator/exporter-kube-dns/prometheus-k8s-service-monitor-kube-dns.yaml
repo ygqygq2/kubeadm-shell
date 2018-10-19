@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  clusterName: ""
+  creationTimestamp: 2017-12-01T02:50:00Z
+  deletionGracePeriodSeconds: null
+  deletionTimestamp: null
+  labels:
+    k8s-app: kube-dns
+  name: kube-dns
+  namespace: monitoring
+  resourceVersion: "2838215"
+  selfLink: /apis/monitoring.coreos.com/v1/namespaces/monitoring/servicemonitors/kube-dns
+  uid: 531de2ac-d642-11e7-aff2-246e965a822c
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: 30s
+    port: http-metrics-dnsmasq
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: 30s
+    port: http-metrics-skydns
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+    - kube-system
+  selector:
+    matchLabels:
+      k8s-app: kube-dns
