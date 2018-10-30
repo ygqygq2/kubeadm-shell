@@ -6,7 +6,7 @@ metadata:
   labels:
     app: example-app
     jobLabel: example-app
-    release: prometheus-operator
+    release: example-app
   name: example-app
   namespace: monitoring
 spec:
@@ -45,7 +45,7 @@ kind: ServiceMonitor
 metadata:
   labels:
     app: example-app
-    release: example-app
+    release: prometheus-operator  # 经过测试，此release和prometheus operator一致才能正常监控
   name: example-app
   namespace: monitoring
 spec:
