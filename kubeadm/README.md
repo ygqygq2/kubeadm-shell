@@ -6,9 +6,9 @@
 4. 安装集群在第一台master节点上执行此脚本；
 5. 添加节点在节点上执行此脚本。
 6. 单master安装脚本设置:
-  INSTALL_CLUSTER="true"
-  INSTALL_SLB="false"
-  k8s_master_vip="10.37.129.11"
-  server0="master1:10.37.129.11"
-  server1=""
-  server2=""
+  INSTALL_CLUSTER="true"    
+  INSTALL_SLB="false"    
+  k8s_master_vip="10.37.129.11"    
+  server0="master1:10.37.129.11"    
+  server1=""    
+  server2=""    
