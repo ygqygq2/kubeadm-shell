@@ -724,7 +724,9 @@ function init_k8s () {
     # 关闭交换分区，并永久注释
     swapoff -a
     swap_line=$(grep '^.*swap' /etc/fstab)
-    sed -i "s@$swap_line@#$a@g" /etc/fstab
+    if [ ! -z "$swap_line" ]; then
+        sed -i "s@$swap_line@#$swap_line@g" /etc/fstab
+    fi
     echo '关闭交换分区 done! '>>${install_log}
 
     # 开启防火墙规则或者关闭防火墙
@@ -943,16 +945,15 @@ EOF
 function install_k8s() {
     # 安装K8S集群
     # 生成kubeadm 配置文件
-    ETCDHOSTS=("${server0#*:}" "${server1#*:}" "${server2#*:}")
+    HOSTS=("${server0#*:}" "${server1#*:}" "${server2#*:}")
     NAMES=("${server0%:*}" "${server1%:*}" "${server2%:*}")
 
-    # 添加hosts
-    ! grep ${NAMES[0]} /etc/hosts > /dev/null && echo $server0|awk -F ':' '{print $2" "$1}' >> /etc/hosts
-    ! grep ${NAMES[1]} /etc/hosts > /dev/null && echo $server1|awk -F ':' '{print $2" "$1}' >> /etc/hosts
-    ! grep ${NAMES[2]} /etc/hosts > /dev/null && echo $server2|awk -F ':' '{print $2" "$1}' >> /etc/hosts
-
-    for i in "${!ETCDHOSTS[@]}"; do
-        HOST=${ETCDHOSTS[$i]}
+    for i in "${!HOSTS[@]}"; do
+        # 添加hosts
+        ! grep ${NAMES[0]} /etc/hosts > /dev/null && echo $server0|awk -F ':' '{print $2" "$1}' >> /etc/hosts
+        ! grep ${NAMES[1]} /etc/hosts > /dev/null && echo $server1|awk -F ':' '{print $2" "$1}' >> /etc/hosts
+        ! grep ${NAMES[2]} /etc/hosts > /dev/null && echo $server2|awk -F ':' '{print $2" "$1}' >> /etc/hosts
+        HOST=${HOSTS[$i]}
         NAME=${NAMES[$i]}
         mkdir -p /tmp/${HOST}
         cat > /tmp/${HOST}/kubeadmcfg.yaml << EOF
@@ -1084,43 +1085,66 @@ EOF
                 $scp_command /etc/kubernetes/admin.conf root@$host:/etc/kubernetes/admin.conf
             done
         else
+            yellow_echo "以下操作失败后可手动在相应节点执行"
+            green_echo "节点 $HOST"
             # 配置kubelet
+            echo "kubeadm alpha phase certs all --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase certs all --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
+            echo "kubeadm alpha phase kubelet config write-to-disk --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase kubelet config write-to-disk --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
+            echo "kubeadm alpha phase kubelet write-env-file --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase kubelet write-env-file --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
+            echo "kubeadm alpha phase kubeconfig kubelet --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase kubeconfig kubelet --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
             $ssh_command root@${HOST} "systemctl restart kubelet"
 
             # 添加etcd到集群中
+            echo "kubeadm alpha phase etcd local --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase etcd local --config /etc/kubernetes/kubeadmcfg.yaml"
             if [ $i -eq 1 ]; then
+                echo "kubectl exec -n kube-system etcd-${NAMES[0]} -- \
+                etcdctl --ca-file /etc/kubernetes/pki/etcd/ca.crt \
+                --cert-file /etc/kubernetes/pki/etcd/peer.crt \
+                --key-file /etc/kubernetes/pki/etcd/peer.key \
+                --endpoints=https://${HOSTS[0]}:2379 \
+                member add ${NAMES[1]} https://${HOSTS[1]}:2380"
                 kubectl exec -n kube-system etcd-${NAMES[0]} -- \
                 etcdctl --ca-file /etc/kubernetes/pki/etcd/ca.crt \
                 --cert-file /etc/kubernetes/pki/etcd/peer.crt \
                 --key-file /etc/kubernetes/pki/etcd/peer.key \
-                --endpoints=https://${ETCDHOSTS[0]}:2379 \
-                member add ${NAMES[1]} https://${ETCDHOSTS[1]}:2380
+                --endpoints=https://${HOSTS[0]}:2379 \
+                member add ${NAMES[1]} https://${HOSTS[1]}:2380
             else
+                echo "kubectl exec -n kube-system etcd-${NAMES[0]} -- \
+                etcdctl --ca-file /etc/kubernetes/pki/etcd/ca.crt \
+                --cert-file /etc/kubernetes/pki/etcd/peer.crt \
+                --key-file /etc/kubernetes/pki/etcd/peer.key \
+                --endpoints=https://${HOSTS[0]}:2379 \
+                member add ${NAMES[2]} https://${HOSTS[2]}:2380"
                 kubectl exec -n kube-system etcd-${NAMES[0]} -- \
                 etcdctl --ca-file /etc/kubernetes/pki/etcd/ca.crt \
                 --cert-file /etc/kubernetes/pki/etcd/peer.crt \
                 --key-file /etc/kubernetes/pki/etcd/peer.key \
-                --endpoints=https://${ETCDHOSTS[0]}:2379 \
-                member add ${NAMES[2]} https://${ETCDHOSTS[2]}:2380
+                --endpoints=https://${HOSTS[0]}:2379 \
+                member add ${NAMES[2]} https://${HOSTS[2]}:2380
             fi
-            return_error_exit "Etcd add member ${HOST}"
+            return_echo "Etcd add member ${HOST}"
 
             sleep 2
+            echo "kubeadm alpha phase kubeconfig all --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase kubeconfig all --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
+            echo "kubeadm alpha phase controlplane all --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase controlplane all --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
+            echo "kubeadm alpha phase kubelet config annotate-cri --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase kubelet config annotate-cri --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
+            echo "kubeadm alpha phase mark-master --config /etc/kubernetes/kubeadmcfg.yaml"
             $ssh_command root@${HOST} "kubeadm alpha phase mark-master --config /etc/kubernetes/kubeadmcfg.yaml"
         fi
 
@@ -1131,6 +1155,7 @@ EOF
 
 function add_node() {
     # 配置kubelet
+    rsync -avz -e "${ssh_command}" root@${k8s_master_vip}:/etc/hosts /etc/hosts
     rsync -avz -e "${ssh_command}" root@${k8s_master_vip}:/etc/sysconfig/kubelet /etc/sysconfig/kubelet
     systemctl daemon-reload
     systemctl enable kubelet && systemctl restart kubelet
