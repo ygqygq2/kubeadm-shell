@@ -28,6 +28,8 @@ server1="master2:10.37.129.12"
 server2="master3:10.37.129.13"
 # K8S网段
 podSubnet="10.244.0.0/16"
+# 可获取kubeadm join命令的节点IP
+k8s_join_ip="$k8s_master_vip"
 ##############################################################
 NAMES=("${server0%:*}" "${server1%:*}" "${server2%:*}")
 HOSTS=("${server0#*:}" "${server1#*:}" "${server2#*:}")
