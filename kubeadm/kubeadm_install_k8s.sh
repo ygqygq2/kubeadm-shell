@@ -14,7 +14,7 @@
 
 ##############################################################
 # 是否安装集群，false为添加节点，true为安装集群
-INSTALL_CLUSTER="true"
+INSTALL_CLUSTER="false"
 # 是否安装Keepalived+HAproxy
 INSTALL_SLB="true"
 # 定义Kubernetes信息
@@ -1154,6 +1154,7 @@ EOF
 }
 
 function add_node() {
+    user_verify_function
     # 配置kubelet
     rsync -avz -e "${ssh_command}" root@${k8s_master_vip}:/etc/hosts /etc/hosts
     rsync -avz -e "${ssh_command}" root@${k8s_master_vip}:/etc/sysconfig/kubelet /etc/sysconfig/kubelet
