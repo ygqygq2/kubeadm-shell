@@ -1158,13 +1158,13 @@ EOF
 function add_node() {
     user_verify_function
     # 配置kubelet
-    rsync -avz -e "${ssh_command}" root@${k8s_master_vip}:/etc/hosts /etc/hosts
-    rsync -avz -e "${ssh_command}" root@${k8s_master_vip}:/etc/sysconfig/kubelet /etc/sysconfig/kubelet
+    rsync -avz -e "${ssh_command}" root@${k8s_join_ip}:/etc/hosts /etc/hosts
+    rsync -avz -e "${ssh_command}" root@${k8s_join_ip}:/etc/sysconfig/kubelet /etc/sysconfig/kubelet
     systemctl daemon-reload
     systemctl enable kubelet && systemctl restart kubelet
 
     # 获取加入k8s节点命令
-    k8s_add_node_command=$($ssh_command root@$k8s_master_vip "kubeadm token create --print-join-command")
+    k8s_add_node_command=$($ssh_command root@$k8s_join_ip"kubeadm token create --print-join-command")
     $k8s_add_node_command
     echo '添加k8s node done! '>>${install_log}
 }
