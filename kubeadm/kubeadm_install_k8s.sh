@@ -989,6 +989,7 @@ networking:
 kubeProxy:
   config:
     mode: ipvs
+
 EOF
 
         if [ $i -eq 0 ]; then
