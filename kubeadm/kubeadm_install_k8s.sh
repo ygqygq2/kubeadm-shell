@@ -6,7 +6,7 @@
 # Blog: http://ygqygq2.blog.51cto.com
 # Created Time : 2018-10-22 22:57:11
 # Description: 
-# 1. Kubeadm安装Kubernetes（支持1或3台master）
+# 1. Kubeadm安装Kubernetes（3台master）
 # 2. 需要在节点提前手动设置hostname
 # 3. 脚本初始化时添加ssh key登录其它节点，可能需要用户按提示输入ssh密码
 # 4. 安装集群在第一台master节点上执行此脚本；添加节点在节点上执行此脚本。
@@ -31,8 +31,8 @@ podSubnet="10.244.0.0/16"
 # 可获取kubeadm join命令的节点IP
 k8s_join_ip="$k8s_master_vip"
 ##############################################################
-NAMES=("${server0%:*}" "${server1%:*}" "${server2%:*}")
-HOSTS=("${server0#*:}" "${server1#*:}" "${server2#*:}")
+NAMES=(${server0%:*} ${server1%:*} ${server2%:*})
+HOSTS=(${server0#*:} ${server1#*:} ${server2#*:})
 ##############################################################
 
 PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
@@ -40,8 +40,8 @@ export PATH
 
 # Check if user is root
 if [ $(id -u) != "0" ]; then
-echo "Error: You must be root to run this script, please use root to run me."
-exit 1
+    echo "Error: You must be root to run this script, please use root to run me."
+    exit 1
 fi
 ##############################################################
 
@@ -716,7 +716,7 @@ function init_k8s () {
     echo '安装docker ce done! '>>${install_log}
 
     # 安装kubelet
-    yum install -y kubelet kubeadm kubectl ipvsadm
+    yum install -y kubelet-${KUBEVERSION/v/} kubeadm-${KUBEVERSION/v/} kubectl${KUBEVERSION/v/} ipvsadm
     systemctl enable kubelet && systemctl start kubelet
     echo '安装kubelet kubeadm kubectl ipvsadm done! '>>${install_log}
 
@@ -947,9 +947,6 @@ EOF
 function install_k8s() {
     # 安装K8S集群
     # 生成kubeadm 配置文件
-    HOSTS=("${server0#*:}" "${server1#*:}" "${server2#*:}")
-    NAMES=("${server0%:*}" "${server1%:*}" "${server2%:*}")
-
     for i in "${!HOSTS[@]}"; do
         # 添加hosts
         ! grep ${NAMES[0]} /etc/hosts > /dev/null && echo $server0|awk -F ':' '{print $2" "$1}' >> /etc/hosts
@@ -958,12 +955,21 @@ function install_k8s() {
         HOST=${HOSTS[$i]}
         NAME=${NAMES[$i]}
         mkdir -p /tmp/${HOST}
+        if [ $INSTALL_SLB != "true" ]; then
+            control_plane_port=6443
+        else
+            control_plane_port=8443
+        fi
         cat > /tmp/${HOST}/kubeadmcfg.yaml << EOF
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: "ipvs"
+---
 apiVersion: kubeadm.k8s.io/v1alpha3
 kind: ClusterConfiguration
 kubernetesVersion: ${KUBEVERSION}
 imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers
-controlPlaneEndpoint: "${k8s_master_vip}:8443"
+controlPlaneEndpoint: "${k8s_master_vip}:${control_plane_port}"
 
 apiServerCertSANs:
 - "${server0#*:}"
@@ -985,10 +991,6 @@ schedulerExtraArgs:
 
 networking:
   podSubnet: ${podSubnet}
-
-kubeProxy:
-  config:
-    mode: ipvs
 
 EOF
 
