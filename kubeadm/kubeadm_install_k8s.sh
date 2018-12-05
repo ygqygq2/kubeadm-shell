@@ -18,7 +18,7 @@ INSTALL_CLUSTER="false"
 # 是否安装Keepalived+HAproxy
 INSTALL_SLB="true"
 # 定义Kubernetes信息
-KUBEVERSION="v1.12.2"
+KUBEVERSION="v1.13.0"
 DOCKERVERSION="docker-ce-18.06.1.ce"
 # k8s master VIP（单节点为节点IP）
 k8s_master_vip="10.37.129.10"
@@ -965,29 +965,33 @@ apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: "ipvs"
 ---
-apiVersion: kubeadm.k8s.io/v1alpha3
+apiVersion: kubeadm.k8s.io/v1beta1
 kind: ClusterConfiguration
 kubernetesVersion: ${KUBEVERSION}
 imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers
 controlPlaneEndpoint: "${k8s_master_vip}:${control_plane_port}"
 
-apiServerCertSANs:
-- "${server0#*:}"
-- "${server1#*:}"
-- "${server2#*:}"
-- "${server0%:*}"
-- "${server1%:*}"
-- "${server2%:*}"
-- "${k8s_master_vip}"
-- "127.0.0.1"
+apiServer:
+  extraArgs:
+    bind-address: 0.0.0.0
+  CertSANs:
+    - "${server0#*:}"
+    - "${server1#*:}"
+    - "${server2#*:}"
+    - "${server0%:*}"
+    - "${server1%:*}"
+    - "${server2%:*}"
+    - "${k8s_master_vip}"
+    - "127.0.0.1"
+    - "localhost"
 
-controllerManagerExtraArgs:
-  address: 0.0.0.0
-  node-monitor-grace-period: 10s
-  pod-eviction-timeout: 10s
+controllerManager:
+  extraArgs:
+    bind-address: 0.0.0.0
 
-schedulerExtraArgs:
-  address: 0.0.0.0
+scheduler:
+  extraArgs:
+    address: 0.0.0.0
 
 networking:
   podSubnet: ${podSubnet}
