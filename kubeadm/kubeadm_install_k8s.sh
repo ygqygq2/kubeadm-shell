@@ -21,15 +21,15 @@ INSTALL_SLB="true"
 KUBEVERSION="v1.13.0"
 DOCKERVERSION="docker-ce-18.06.1.ce"
 # k8s master VIP（单节点为节点IP）
-k8s_master_vip="10.37.129.10"
+k8s_master_vip="192.168.105.150"
 # 主机名:IP，需要执行脚本前设置
-server0="master1:10.37.129.11"
-server1="master2:10.37.129.12"
-server2="master3:10.37.129.13"
+server0="master1:192.168.105.151"
+server1="master2:192.168.105.152"
+server2="master3:192.168.105.153"
 # K8S网段
 podSubnet="10.244.0.0/16"
 # 可获取kubeadm join命令的节点IP
-k8s_join_ip="$k8s_master_vip"
+k8s_join_ip=$k8s_master_vip
 ##############################################################
 NAMES=(${server0%:*} ${server1%:*} ${server2%:*})
 HOSTS=(${server0#*:} ${server1#*:} ${server2#*:})
@@ -702,14 +702,6 @@ EOF
 }
 
 function init_k8s () {
-    if [ "$HOSTNAME" = "${NAMES[0]}" ]; then
-        # 免交互生成ssh key
-        [ ! -f ~/.ssh/id_rsa ] && ssh-keygen -t rsa -f ~/.ssh/id_rsa -P ''
-        for h in ${HOSTS[@]}; do
-            ssh-copy-id ${ssh_parameters} -p ${ssh_port} -i ~/.ssh/id_rsa root@${h}
-        done
-    fi
-
     # 安装docker-ce并启动
     yum -y install $DOCKERVERSION
     systemctl enable docker && systemctl restart docker
@@ -778,7 +770,6 @@ function set_slb() {
     # 设置keepalived+haproxy
     [ $INSTALL_SLB != "true" ] && return 0
     # 拉取haproxy镜像
-    docker pull haproxy:1.7.8-alpine
     mkdir /etc/haproxy
     cat >/etc/haproxy/haproxy.cfg<<EOF
 global
@@ -836,9 +827,6 @@ EOF
             haproxy:1.7.8-alpine
     fi
 
-    # 拉取keepalived镜像
-    docker pull osixia/keepalived:1.4.4
-
     # 启动
     # 载入内核相关模块
     # lsmod | grep ip_vs
@@ -846,7 +834,7 @@ EOF
 
     # 获取LVS网卡名
     subnet=$(echo $k8s_master_vip|awk -F '.' '{print $1"."$2"."$3"."}')
-    network_card_name=$(ip route | grep "$subnet" | awk '{print $3}')
+    network_card_name=$(ip route | egrep "^$subnet" | awk '{print $3}')
 
     # 启动keepalived
     check_keepalived_docker=$(docker ps|grep -w k8s-keepalived)
@@ -858,14 +846,14 @@ EOF
             -e KEEPALIVED_PASSWORD=k8s \
             --name k8s-keepalived \
             --restart always \
-            -d osixia/keepalived:1.4.4
+            -d keepalived:latest
     fi
     echo '安装k8s keepalived haproxy done! '>>${install_log}
 }
 
 function install_cfssl() {
     #  安装cfssl
-    [ -f /usr/local/bin/cfssl ] && yellow_echo "No need to install cfssl" && return 0 
+    [ -f /usr/local/sbin/cfssl ] && yellow_echo "No need to install cfssl" && return 0 
     wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
     wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
     wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
@@ -1063,9 +1051,8 @@ EOF
         rsync -avz -e "${ssh_command}" /tmp/${HOST}/kubeadmcfg.yaml root@${HOST}:/etc/kubernetes/
 
         # 设置kubelet启动额外参数
-        echo 'KUBELET_EXTRA_ARGS="--pod-infra-container-image=registry.cn-hangzhou.aliyuncs.com/google_containers/pause-amd64:3.1 \
-            --dynamic-config-dir=/etc/kubernetes"' > /tmp/kubelet
-        rsync -avz -e "${ssh_command}" /tmp/kubelet root@${HOST}:/etc/sysconfig/kubelet 
+        #echo 'KUBELET_EXTRA_ARGS=""' > /tmp/kubelet
+        #rsync -avz -e "${ssh_command}" /tmp/kubelet root@${HOST}:/etc/sysconfig/kubelet 
 
         # 提前拉取镜像
         $ssh_command root@${HOST} "kubeadm config images pull --config /etc/kubernetes/kubeadmcfg.yaml"
@@ -1078,6 +1065,12 @@ EOF
             # 初始化
             kubeadm init --config /etc/kubernetes/kubeadmcfg.yaml
             return_error_exit "kubeadm init"
+            sleep 60
+              mkdir -p $HOME/.kube
+              \cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+              chown $(id -u):$(id -g) $HOME/.kube/config  mkdir -p $HOME/.kube
+              \cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+              chown $(id -u):$(id -g) $HOME/.kube/config
 
             # 将ca相关文件传至其他master节点
             CONTROL_PLANE_IPS=(${HOSTS[1]} ${HOSTS[2]})
@@ -1097,23 +1090,20 @@ EOF
             yellow_echo "以下操作失败后可手动在相应节点执行"
             green_echo "节点 $HOST"
             # 配置kubelet
-            echo "kubeadm alpha phase certs all --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase certs all --config /etc/kubernetes/kubeadmcfg.yaml"
+            echo "kubeadm init phase certs all --config /etc/kubernetes/kubeadmcfg.yaml"
+            $ssh_command root@${HOST} "kubeadm init phase certs all --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
-            echo "kubeadm alpha phase kubelet config write-to-disk --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase kubelet config write-to-disk --config /etc/kubernetes/kubeadmcfg.yaml"
+            echo "kubeadm init phase kubelet-start --config /etc/kubernetes/kubeadmcfg.yaml"
+            $ssh_command root@${HOST} "kubeadm init phase kubelet-start --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
-            echo "kubeadm alpha phase kubelet write-env-file --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase kubelet write-env-file --config /etc/kubernetes/kubeadmcfg.yaml"
-            sleep 2
-            echo "kubeadm alpha phase kubeconfig kubelet --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase kubeconfig kubelet --config /etc/kubernetes/kubeadmcfg.yaml"
+            echo "kubeadm init phase kubeconfig kubelet --config /etc/kubernetes/kubeadmcfg.yaml"
+            $ssh_command root@${HOST} "kubeadm init phase kubeconfig kubelet --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
             $ssh_command root@${HOST} "systemctl restart kubelet"
 
             # 添加etcd到集群中
-            echo "kubeadm alpha phase etcd local --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase etcd local --config /etc/kubernetes/kubeadmcfg.yaml"
+            echo "kubeadm init phase etcd local --config /etc/kubernetes/kubeadmcfg.yaml"
+            $ssh_command root@${HOST} "kubeadm init phase etcd local --config /etc/kubernetes/kubeadmcfg.yaml"
             if [ $i -eq 1 ]; then
                 echo "kubectl exec -n kube-system etcd-${NAMES[0]} -- \
                 etcdctl --ca-file /etc/kubernetes/pki/etcd/ca.crt \
@@ -1144,17 +1134,14 @@ EOF
             return_echo "Etcd add member ${HOST}"
 
             sleep 2
-            echo "kubeadm alpha phase kubeconfig all --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase kubeconfig all --config /etc/kubernetes/kubeadmcfg.yaml"
+            echo "kubeadm init phase kubeconfig all --config /etc/kubernetes/kubeadmcfg.yaml"
+            $ssh_command root@${HOST} "kubeadm init phase kubeconfig all --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
-            echo "kubeadm alpha phase controlplane all --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase controlplane all --config /etc/kubernetes/kubeadmcfg.yaml"
+            echo "kubeadm init phase control-plane all --config /etc/kubernetes/kubeadmcfg.yaml"
+            $ssh_command root@${HOST} "kubeadm init phase control-plane all --config /etc/kubernetes/kubeadmcfg.yaml"
             sleep 2
-            echo "kubeadm alpha phase kubelet config annotate-cri --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase kubelet config annotate-cri --config /etc/kubernetes/kubeadmcfg.yaml"
-            sleep 2
-            echo "kubeadm alpha phase mark-master --config /etc/kubernetes/kubeadmcfg.yaml"
-            $ssh_command root@${HOST} "kubeadm alpha phase mark-master --config /etc/kubernetes/kubeadmcfg.yaml"
+            echo "kubeadm init phase mark-control-plane --config /etc/kubernetes/kubeadmcfg.yaml"
+            $ssh_command root@${HOST} "kubeadm init phase mark-control-plane --config /etc/kubernetes/kubeadmcfg.yaml"
         fi
 
     done
@@ -1171,12 +1158,21 @@ function add_node() {
     systemctl enable kubelet && systemctl restart kubelet
 
     # 获取加入k8s节点命令
-    k8s_add_node_command=$($ssh_command root@$k8s_join_ip"kubeadm token create --print-join-command")
+    k8s_add_node_command=$($ssh_command root@$k8s_join_ip "kubeadm token create --print-join-command")
     $k8s_add_node_command
     echo '添加k8s node done! '>>${install_log}
 }
 
 function do_all() {
+    if [ "$HOSTNAME" = "${NAMES[0]}" ]; then
+        # 免交互生成ssh key
+        [ ! -f ~/.ssh/id_rsa ] && ssh-keygen -t rsa -f ~/.ssh/id_rsa -P ''
+        chmod 0600 ~/.ssh/id_rsa
+        for h in ${HOSTS[@]}; do
+            ssh-copy-id ${ssh_parameters} -p ${ssh_port} -i ~/.ssh/id_rsa -f root@${h}
+        done
+    fi
+
     # 第一台master节点
     if [[ "$INSTALL_CLUSTER" != "false" && "$HOSTNAME" = "${NAMES[0]}" ]]; then
         check_running=$(ps aux|grep "/bin/bash /tmp/$(basename $ME)"|grep -v grep)
