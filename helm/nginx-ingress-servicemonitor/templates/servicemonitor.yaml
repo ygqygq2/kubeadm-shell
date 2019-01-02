@@ -2,7 +2,7 @@ apiVersion: {{ template "prometheus-operator.apiVersion" . }}
 kind: ServiceMonitor
 metadata:
   labels:
-    app: {{ template "nginx-ingress-exporter.name" . }}
+    app: {{ template "nginx-ingress-servicemonitor.name" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     heritage: "{{ .Release.Service }}"
     release: "{{ .Release.Name }}"
@@ -10,7 +10,7 @@ metadata:
     {{- if .Values.additionalServiceMonitorLabels }}
 {{ toYaml .Values.additionalServiceMonitorLabels | indent 4 }}
     {{- end }}    
-  name: {{ template "nginx-ingress-exporter.fullname" . }}
+  name: {{ template "nginx-ingress-servicemonitor.fullname" . }}
 spec:
   selector:
     matchLabels:
@@ -19,6 +19,6 @@ spec:
     matchNames:
       - {{ .Values.namespaceSelector }}
   endpoints:
-  - port: metrics
+  - port: "{{ .Values.metricsPortName }}"
     interval: 15s
     #bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

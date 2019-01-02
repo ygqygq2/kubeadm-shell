@@ -1,6 +1,6 @@
-# nginx-ingress--exporter - Prometheus Operator with nginx ingress controller 
+# zookeeper-servicemonitor - Prometheus Operator with nginx ingress controller 
 
-[nginx-ingress-exporter](https://)是什么
+[zookeeper-servicemonitor](https://)是什么
 
 ## Introduction
 
@@ -16,7 +16,7 @@ This chart bootstraps prometheus servicemonitor on a [Kubernetes](http://kuberne
 To install the chart with the release name `my-release`:
 
 ```bash
-$ helm install --name my-release ./nginx-ingress-exporter
+$ helm install --name my-release ./zookeeper-servicemonitor
 ```
 
 The command deploys ceph-exporter cluster on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.

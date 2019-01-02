@@ -1,0 +1,25 @@
+apiVersion: {{ template "prometheus-operator.apiVersion" . }}
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ template "redis-servicemonitor.name" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: "{{ .Release.Service }}"
+    release: "{{ .Release.Name }}"
+    prometheus: {{ .Release.Name }}
+    {{- if .Values.additionalServiceMonitorLabels }}
+{{ toYaml .Values.additionalServiceMonitorLabels | indent 4 }}
+    {{- end }}    
+  name: {{ template "redis-servicemonitor.fullname" . }}
+spec:
+  selector:
+    matchLabels:
+      chart: redis-1.1.15
+      # release: prod-mysql
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.namespaceSelector }}
+  endpoints:
+  - port: "{{ .Values.metricsPortName }}"
+    interval: 15s
+    #bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

@@ -1,10 +1,12 @@
-# ingress namespace
-namespaceSelector: nginx-ingress
+# where the mysql installed namespace
+namespaceSelector: prod
+# endports
+endpoints: []
 # on what port are the metrics exposed by etcd
-schedulerPort: 9913
+metricsPortName: metrics
 # Are we talking http or https?
 scheme: http
-# default rules are in templates/nginx-ingress-exporter.rules.yaml
+# default rules are in templates/mysql-servicemonitor.rules.yaml
 # prometheusRules: {}
 ## Custom Labels to be added to ServiceMonitor
 # 经过测试，servicemonitor标签添加prometheus operator的release标签即可正常监控
