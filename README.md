@@ -7,3 +7,6 @@ Kubernetes编排整理
 ## kubeadm
 一个安装3个master的shell脚本
 
+## shell
+管理kubernetes的一些脚本
+
