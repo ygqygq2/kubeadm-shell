@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # rbd类型pv，删除image
-# cephfs类型pv，删除ceph auth，删除cephfs目录
+# cephfs类型pv，删除ceph auth，删除cephfs目录，删除secret
 
 #获取脚本所存放目录
 cd `dirname $0`
@@ -8,6 +8,7 @@ SH_DIR=`pwd`
 ME=$0
 PARAMETERS=$*
 pvs="$PARAMETERS"
+delete_log="/tmp/delete_pv.log"
 
 # ceph管理节点
 ceph_deploy_host="master1"
@@ -16,7 +17,6 @@ pool="kube"
 cephfs_mount_dir="/data/cephfs"
 cephfs_provisioned_info="pv.kubernetes.io/provisioned-by: ceph.com/cephfs"
 rbd_provisioned_info="pv.kubernetes.io/provisioned-by: ceph.com/rbd"
-
 
 # 定义ssh参数
 ssh_port="22"
@@ -58,10 +58,10 @@ function twinkle_echo () {
 
 function return_echo () {
     if [ $? -eq 0 ]; then
-        echo -n "$*" && green_echo "成功"
+        echo -n "$(date +%F-%T) $*" && green_echo "成功"
         return 0
     else
-        echo -n "$*" && red_echo "失败"
+        echo -n "$(date +%F-%T) $*" && red_echo "失败"
         return 1
     fi
 }
@@ -181,20 +181,29 @@ function check_cephfs_mount() {
     mount_notice=""
     mountpoint $cephfs_mount_dir > /dev/null 2>&1
     [ $? -ne 0 ] && mount_notice=$(red_echo "$cephfs_mount_dir not mount")
+    red_echo "$cephfs_mount_dir not mount"
 }
 
 function clear_cephfs_pv() {
     local pv=$1
+    secret_name=$(kubectl get pv $pv --template={{.spec.cephfs.secretRef.name}}) 
+    secret_namespace=$(kubectl get pv $pv --template={{.spec.cephfs.secretRef.namespace}}) 
+    cephfs_path=$(kubectl get pv $pv --template={{.spec.cephfs.path}})
     # 删除ceph用户
     cephfs_user=$(kubectl get pv $pv --template={{.spec.cephfs.user}})
     if [ ! -z "$cephfs_user" ]; then
         $ssh_command root@$ceph_deploy_host "ceph auth del client.$cephfs_user"
-        return_echo "remove cephfs user 【$cephfs_user】"
+        return_echo "Remove cephfs user 【$cephfs_user】"
         [ $? -ne 0 ] && return 1
         # 删除pv中cephfs目录
-        cephfs_path=$(kubectl get pv $pv --template={{.spec.cephfs.path}})
         [ -d ${cephfs_mount_dir}${cephfs_path} ] && rm -rf ${cephfs_mount_dir}${cephfs_path}
-        return_echo "remove cephfs directory 【${cephfs_mount_dir}${cephfs_path}】" && kubectl delete pv $pv
+        return_echo "Remove cephfs directory 【${cephfs_mount_dir}${cephfs_path}】"
+        if [ $? -eq 0 ]; then
+            kubectl delete pv $pv
+            return_echo "Delete pv 【$pv】"
+            kubectl delete secret -n $secret_namespace $secret_name
+            return_echo "Delete secret 【$secret_namespace/$secret_name】"
+        fi        
     else
         yellow_echo "Get 【$pv】 cephfs user error!"
         return 1
@@ -204,6 +213,6 @@ function clear_cephfs_pv() {
 
 check_cephfs_mount
 verify_pv
-clear_pv
+clear_pv|tee -a $delete_log
 
 exit 0
