@@ -708,7 +708,7 @@ function init_k8s () {
     echo '安装docker ce done! '>>${install_log}
 
     # 安装kubelet
-    yum install -y kubelet-${KUBEVERSION/v/} kubeadm-${KUBEVERSION/v/} kubectl${KUBEVERSION/v/} ipvsadm
+    yum install -y kubelet-${KUBEVERSION/v/} kubeadm-${KUBEVERSION/v/} kubectl-${KUBEVERSION/v/} ipvsadm
     systemctl enable kubelet && systemctl start kubelet
     echo '安装kubelet kubeadm kubectl ipvsadm done! '>>${install_log}
 
