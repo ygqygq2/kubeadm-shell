@@ -28,9 +28,12 @@ spec:
     bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
   {{- else }}
   - port: http-metrics
+    scheme: http
     interval: 30s
     honorLabels: true
-  - port: cadvisor
+  - port: http-metrics
+    scheme: http
+    path: /metrics/cadvisor
     interval: 30s
     honorLabels: true
   {{- end }}
@@ -42,3 +45,4 @@ spec:
     matchLabels:
       k8s-app: kubelet
 {{- end}}
+
