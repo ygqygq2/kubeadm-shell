@@ -159,7 +159,7 @@ spec:
 EOF
         #  删除pod
         pod_status=$(kubectl get pod pv-recycler -ojsonpath={.status.phase})
-        until [ "$pod_status" != "Completed" ]; do
+        until [ "$pod_status" == "Completed" ]; do
             echo -e "Waiting 5s"
             sleep 5
             pod_status=$(kubectl get pod pv-recycler -ojsonpath={.status.phase})
@@ -171,7 +171,7 @@ EOF
         kubectl delete pvc pv-recycler
         kubectl patch pv -p '{"spec":{"claimRef":{"apiVersion":"","kind":"","name":"","namespace":"","resourceVersion":"","uid":""}}}' \
             $pv
-        kubectl get pv $pv -oyaml> /tmp/.pv.yaml
+        kubectl get pv $pv -oyaml --export > /tmp/.pv.yaml
         sed '/claimRef/d' -i /tmp/.pv.yaml
         kubectl replace -f /tmp/.pv.yaml
     done
