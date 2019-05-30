@@ -159,7 +159,7 @@ spec:
 EOF
         #  删除pod
         pod_status=$(kubectl get pod pv-recycler -ojsonpath={.status.phase})
-        until [ "$pod_status" == "Completed" ]; do
+        until [ "$pod_status" == "Succeeded" ]; do
             echo -e "Waiting 5s"
             sleep 5
             pod_status=$(kubectl get pod pv-recycler -ojsonpath={.status.phase})
