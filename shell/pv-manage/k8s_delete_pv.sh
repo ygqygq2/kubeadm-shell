@@ -181,7 +181,7 @@ function check_cephfs_mount() {
     mount_notice=""
     mountpoint $cephfs_mount_dir > /dev/null 2>&1
     [ $? -ne 0 ] && mount_notice=$(red_echo "$cephfs_mount_dir not mount")
-    red_echo "$cephfs_mount_dir not mount"
+    red_echo "$mount_notice"
 }
 
 function clear_cephfs_pv() {
