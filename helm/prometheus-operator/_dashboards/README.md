@@ -1,1 +1,0 @@
-手动导入在grafana中，这些dashboard即可支持修改保存。
