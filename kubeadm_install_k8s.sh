@@ -18,8 +18,8 @@ INSTALL_CLUSTER="false"
 # 是否安装Keepalived+HAproxy
 INSTALL_SLB="true"
 # 定义Kubernetes信息
-KUBEVERSION="v1.14.0"
-DOCKERVERSION="docker-ce-18.06.1.ce"
+KUBEVERSION="v1.15.3"
+DOCKERVERSION="docker-ce-18.09.7"
 # k8s master VIP（单节点为节点IP）
 k8s_master_vip="192.168.105.150"
 # 主机名:IP，需要执行脚本前设置
@@ -953,7 +953,7 @@ apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: "ipvs"
 ---
-apiVersion: kubeadm.k8s.io/v1beta1
+apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 kubernetesVersion: ${KUBEVERSION}
 imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers
