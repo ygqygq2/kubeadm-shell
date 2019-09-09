@@ -20,7 +20,7 @@ INSTALL_SLB="true"
 # 定义Kubernetes信息
 KUBEVERSION="v1.15.3"
 DOCKERVERSION="docker-ce-18.09.7"
-KUBERNETES_CNI_VERSION="0.7.5"
+KUBERNETES_CNI_VERSION=""
 # k8s master VIP（单节点为节点IP）
 k8s_master_vip="192.168.105.150"
 # 主机名:IP，需要执行脚本前设置
@@ -709,7 +709,7 @@ function init_k8s () {
     echo '安装docker ce done! '>>${install_log}
 
     # 安装kubelet
-    yum install -y kubernetes-cni-$KUBERNETES_CNI_VERSION kubelet-${KUBEVERSION/v/} kubeadm-${KUBEVERSION/v/} kubectl-${KUBEVERSION/v/} ipvsadm
+    yum install -y kubernetes-cni${KUBERNETES_CNI_VERSION:+-$KUBERNETES_CNI_VERSION} kubelet-${KUBEVERSION/v/} kubeadm-${KUBEVERSION/v/} kubectl-${KUBEVERSION/v/} ipvsadm
     systemctl enable kubelet && systemctl start kubelet
     echo '安装kubelet kubeadm kubectl ipvsadm done! '>>${install_log}
 
