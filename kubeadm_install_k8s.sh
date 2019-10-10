@@ -18,7 +18,7 @@ INSTALL_CLUSTER="false"
 # 是否安装Keepalived+HAproxy
 INSTALL_SLB="true"
 # 定义Kubernetes信息
-KUBEVERSION="v1.15.3"
+KUBEVERSION="v1.16.0"
 DOCKERVERSION="docker-ce-18.09.7"
 KUBERNETES_CNI_VERSION=""
 # k8s master VIP（单节点为节点IP）
