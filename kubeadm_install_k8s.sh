@@ -14,19 +14,19 @@
 
 ##############################################################
 # 是否安装集群，false为添加节点，true为安装集群
-INSTALL_CLUSTER="false"
+INSTALL_CLUSTER="true"
 # 是否安装Keepalived+HAproxy
 INSTALL_SLB="true"
 # 定义Kubernetes信息
-KUBEVERSION="v1.16.0"
-DOCKERVERSION="docker-ce-18.09.7"
+KUBEVERSION="v1.16.2"
+DOCKERVERSION="18.09.7"
 KUBERNETES_CNI_VERSION=""
 # k8s master VIP（单节点为节点IP）
-k8s_master_vip="192.168.105.150"
+k8s_master_vip="10.37.129.10"
 # 主机名:IP，需要执行脚本前设置
-server0="master1:192.168.105.151"
-server1="master2:192.168.105.152"
-server2="master3:192.168.105.153"
+server0="master1:10.37.129.11"
+server1="master2:10.37.129.12"
+server2="master3:10.37.129.13"
 # K8S网段
 podSubnet="10.244.0.0/16"
 # 可获取kubeadm join命令的节点IP
@@ -704,7 +704,7 @@ EOF
 
 function init_k8s () {
     # 安装docker-ce并启动
-    yum -y install $DOCKERVERSION
+    yum -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
     systemctl enable docker && systemctl restart docker
     echo '安装docker ce done! '>>${install_log}
 
@@ -771,7 +771,7 @@ function set_slb() {
     # 设置keepalived+haproxy
     [ $INSTALL_SLB != "true" ] && return 0
     # 拉取haproxy镜像
-    mkdir /etc/haproxy
+    [ ! -d /etc/haproxy ] && mkdir /etc/haproxy
     cat >/etc/haproxy/haproxy.cfg<<EOF
 global
   log 127.0.0.1 local0 err
@@ -855,9 +855,9 @@ EOF
 function install_cfssl() {
     #  安装cfssl
     [ -f /usr/local/sbin/cfssl ] && yellow_echo "No need to install cfssl" && return 0 
-    wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
-    wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
-    wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
+    wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -o cfssl_linux-amd64
+    wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 -o cfssljson_linux-amd64
+    wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64 -o cfssl-certinfo_linux-amd64
     chmod +x cfssl_linux-amd64 cfssljson_linux-amd64 cfssl-certinfo_linux-amd64
     \mv cfssl_linux-amd64 /usr/local/sbin/cfssl
     \mv cfssljson_linux-amd64 /usr/local/sbin/cfssljson
@@ -1067,10 +1067,8 @@ EOF
             kubeadm init --config /etc/kubernetes/kubeadmcfg.yaml
             return_error_exit "kubeadm init"
             sleep 60
-              mkdir -p $HOME/.kube
-              \cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-              chown $(id -u):$(id -g) $HOME/.kube/config  mkdir -p $HOME/.kube
-              \cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+              [ ! -d $HOME/.kube ] && mkdir -p $HOME/.kube
+              rsync -az /etc/kubernetes/admin.conf $HOME/.kube/config
               chown $(id -u):$(id -g) $HOME/.kube/config
 
             # 将ca相关文件传至其他master节点
@@ -1170,7 +1168,12 @@ function do_all() {
         [ ! -f ~/.ssh/id_rsa ] && ssh-keygen -t rsa -f ~/.ssh/id_rsa -P ''
         chmod 0600 ~/.ssh/id_rsa
         for h in ${HOSTS[@]}; do
-            ssh-copy-id ${ssh_parameters} -p ${ssh_port} -i ~/.ssh/id_rsa -f root@${h}
+            # 判断能否免密登录
+            ssh ${ssh_parameters} -o PreferredAuthentications=publickey ${h} "pwd" > /dev/null
+            if [ $? -ne 0 ]; then
+                ssh-copy-id ${ssh_parameters} -p ${ssh_port} -i ~/.ssh/id_rsa -f root@${h}
+                return_error_exit "${h} 添加ssh免密认证"
+            fi
         done
     fi
 
