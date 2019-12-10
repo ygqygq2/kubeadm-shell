@@ -847,7 +847,7 @@ EOF
             -e KEEPALIVED_PASSWORD=k8s \
             --name k8s-keepalived \
             --restart always \
-            -d keepalived:latest
+            -d ygqygq2/keepalived:latest
     fi
     echo '安装k8s keepalived haproxy done! '>>${install_log}
 }
