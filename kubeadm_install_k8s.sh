@@ -18,7 +18,7 @@ INSTALL_CLUSTER="true"
 # 是否安装Keepalived+HAproxy
 INSTALL_SLB="true"
 # 定义Kubernetes信息
-KUBEVERSION="v1.16.2"
+KUBEVERSION="v1.17.0"
 DOCKERVERSION="18.09.7"
 KUBERNETES_CNI_VERSION=""
 # k8s master VIP（单节点为节点IP）
@@ -86,10 +86,10 @@ function blue_echo () {
 }
 
 function twinkle_echo () {
-#用法:  twinkle_echo $(red_echo "内容")  ,此处例子为红色闪烁输出
-local twinkle='\e[05m'
-local what="${twinkle} $*"
-echo -e "$(date +%F-%T) ${what}"
+    #用法:  twinkle_echo $(red_echo "内容")  ,此处例子为红色闪烁输出
+    local twinkle='\e[05m'
+    local what="${twinkle} $*"
+    echo -e "$(date +%F-%T) ${what}"
 }
 
 function return_echo () {
@@ -165,7 +165,7 @@ function print_sys_info() {
 
 function set_timezone() {
     blue_echo "Setting timezone..."
-    rm -rf /etc/localtime
+    rm -f /etc/localtime
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 }
 
@@ -603,7 +603,6 @@ function system_opt () {
     #修改SSH为允许用key登录
     mkdir -p /root/.ssh/
     chmod -R 700 /root/.ssh/
-    echo '创建ssh登录所用的目录---done!'>>${install_log}
     
     # sed -i "s#PasswordAuthentication yes#PasswordAuthentication no#g"  /etc/ssh/sshd_config
     sed -i "s@#UseDNS yes@UseDNS no@" /etc/ssh/sshd_config
@@ -611,7 +610,7 @@ function system_opt () {
     sed -i 's@#MaxStartups 10@MaxStartups 50@g' /etc/ssh/sshd_config
     # sed -i 's@#PermitRootLogin yes@PermitRootLogin no@g' /etc/ssh/sshd_config
     service sshd reload
-    echo '设置ssh免密登录 done!'>>${install_log}
+    echo '设置ssh done!'>>${install_log}
     
     # 关闭防火墙
     systemctl disable firewalld
@@ -651,7 +650,6 @@ EOF
 echo '=========================================================='
 cat /etc/redhat-release
 echo '=========================================================='
-df -lh
 EOF
     fi
     echo '设置.bash_profile done!'>>${install_log}
@@ -706,6 +704,12 @@ function init_k8s () {
     # 安装docker-ce并启动
     yum -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
     systemctl enable docker && systemctl restart docker
+    docker version | tee /tmp/docker-version.log
+    cat /tmp/docker-version.log | grep -w $DOCKERVERSION
+    if [ $? -ne 0 ]; then
+        yellow_echo "docker版本未对应(可手动处理后选择[确认]继续)"
+        user_verify_function
+    fi
     echo '安装docker ce done! '>>${install_log}
 
     # 安装kubelet
@@ -827,6 +831,7 @@ EOF
             --restart always \
             haproxy:1.7.8-alpine
     fi
+    return_error_exit "docker 安装 haproxy"
 
     # 启动
     # 载入内核相关模块
@@ -849,15 +854,16 @@ EOF
             --restart always \
             -d ygqygq2/keepalived:latest
     fi
+    return_error_exit "docker 安装 keepalived"
     echo '安装k8s keepalived haproxy done! '>>${install_log}
 }
 
 function install_cfssl() {
     #  安装cfssl
     [ -f /usr/local/sbin/cfssl ] && yellow_echo "No need to install cfssl" && return 0 
-    wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -o cfssl_linux-amd64
-    wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 -o cfssljson_linux-amd64
-    wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64 -o cfssl-certinfo_linux-amd64
+    wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -O cfssl_linux-amd64
+    wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 -O cfssljson_linux-amd64
+    wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64 -O cfssl-certinfo_linux-amd64
     chmod +x cfssl_linux-amd64 cfssljson_linux-amd64 cfssl-certinfo_linux-amd64
     \mv cfssl_linux-amd64 /usr/local/sbin/cfssl
     \mv cfssljson_linux-amd64 /usr/local/sbin/cfssljson
@@ -867,7 +873,7 @@ function install_cfssl() {
 
 function generate_cert() {
     # 生成有效期为10年CA证书
-    cd $SH_DIR
+    cd /etc/kubernetes
     cat > ca-config.json <<EOF
 {
   "signing": {
@@ -919,6 +925,7 @@ EOF
 EOF
 
     cfssl gencert -initca ca-csr.json -config ca-config.json| cfssljson -bare ca - 
+    return_error_exit "cfssl生成自定义CA"
     [ -d /etc/kubernetes/pki ] && mv /etc/kubernetes/pki /etc/kubernetes/pki.bak
     mkdir -p /etc/kubernetes/pki/etcd
     rsync -avz ca.pem /etc/kubernetes/pki/etcd/ca.crt
@@ -1149,6 +1156,7 @@ EOF
 }
 
 function add_node() {
+    green_echo "添加kubernetes节点[$HOSTNAME]"
     user_verify_function
     # 配置kubelet
     rsync -avz -e "${ssh_command}" root@${k8s_join_ip}:/etc/hosts /etc/hosts
