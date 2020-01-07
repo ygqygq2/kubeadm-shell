@@ -1081,13 +1081,13 @@ EOF
             # 将ca相关文件传至其他master节点
             CONTROL_PLANE_IPS=(${HOSTS[1]} ${HOSTS[2]})
             for host in ${CONTROL_PLANE_IPS[@]}; do
+                $ssh_command root@$host "mkdir -p /etc/kubernetes/pki/etcd"
                 $scp_command /etc/kubernetes/pki/ca.crt root@$host:/etc/kubernetes/pki/ca.crt
                 $scp_command /etc/kubernetes/pki/ca.key root@$host:/etc/kubernetes/pki/ca.key
                 $scp_command /etc/kubernetes/pki/sa.key root@$host:/etc/kubernetes/pki/sa.key
                 $scp_command /etc/kubernetes/pki/sa.pub root@$host:/etc/kubernetes/pki/sa.pub
                 $scp_command /etc/kubernetes/pki/front-proxy-ca.crt root@$host:/etc/kubernetes/pki/front-proxy-ca.crt
                 $scp_command /etc/kubernetes/pki/front-proxy-ca.key root@$host:/etc/kubernetes/pki/front-proxy-ca.key
-                $ssh_command root@$host "mkdir -p /etc/kubernetes/pki/etcd"
                 $scp_command /etc/kubernetes/pki/etcd/ca.crt root@$host:/etc/kubernetes/pki/etcd/ca.crt
                 $scp_command /etc/kubernetes/pki/etcd/ca.key root@$host:/etc/kubernetes/pki/etcd/ca.key
                 $scp_command /etc/kubernetes/admin.conf root@$host:/etc/kubernetes/admin.conf
