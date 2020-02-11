@@ -935,7 +935,7 @@ EOF
 
     # 分发到其它master节点
     for h in ${HOSTS[@]}; do
-        rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/
+        rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/ root@$h:/etc/kubernetes/pki/
     done
     echo '安装k8s证书 done! '>>${install_log}
 }
