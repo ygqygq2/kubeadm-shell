@@ -17,6 +17,8 @@
 INSTALL_CLUSTER="true"
 # 是否安装Keepalived+HAproxy
 INSTALL_SLB="true"
+# 是否脚本生成CA证书
+GENERATE_CA="false"
 # 定义Kubernetes信息
 KUBEVERSION="v1.17.0"
 DOCKERVERSION="18.09.7"
@@ -1205,7 +1207,9 @@ function do_all() {
             # 安装证书工具
             install_cfssl
             # 生成证书
-            generate_cert
+            if [ "$GENERATE_CA" != "false" ]; then
+                generate_cert
+            fi
 
             set_slb
 
