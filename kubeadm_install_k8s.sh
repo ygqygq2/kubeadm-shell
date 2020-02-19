@@ -95,64 +95,64 @@ function twinkle_echo () {
 }
 
 function return_echo () {
-if [ $? -eq 0 ]; then
-    echo -n "$* " && green_echo "成功"
-    return 0
-else
-    echo -n "$* " && red_echo "失败"
-    return 1
-fi
+    if [ $? -eq 0 ]; then
+        echo -n "$* " && green_echo "成功"
+        return 0
+    else
+        echo -n "$* " && red_echo "失败"
+        return 1
+    fi
 }
 
 function return_error_exit () {
-[ $? -eq 0 ] && local REVAL="0"
-local what=$*
-if [ "$REVAL" = "0" ];then
-    [ ! -z "$what" ] && { echo -n "$* " && green_echo "成功" ; }
-else
-    red_echo "$* 失败，脚本退出"
-    exit 1
-fi
+    [ $? -eq 0 ] && local REVAL="0"
+    local what=$*
+    if [ "$REVAL" = "0" ];then
+        [ ! -z "$what" ] && { echo -n "$* " && green_echo "成功" ; }
+    else
+        red_echo "$* 失败，脚本退出"
+        exit 1
+    fi
 }
 
 # 定义确认函数
 function user_verify_function () {
-while true;do
-    echo ""
-    read -p "是否确认?[Y/N]:" Y
-    case $Y in
-        [yY]|[yY][eE][sS])
-            echo -e "answer:  \\033[20G [ \e[1;32m是\e[0m ] \033[0m"
-            break
-        ;;
-        [nN]|[nN][oO])
-            echo -e "answer:  \\033[20G [ \e[1;32m否\e[0m ] \033[0m"
-            exit 1
-        ;;
-        *)
-            continue
-    esac
-done
+    while true;do
+        echo ""
+        read -p "是否确认?[Y/N]:" Y
+        case $Y in
+            [yY]|[yY][eE][sS])
+                echo -e "answer:  \\033[20G [ \e[1;32m是\e[0m ] \033[0m"
+                break
+            ;;
+            [nN]|[nN][oO])
+                echo -e "answer:  \\033[20G [ \e[1;32m否\e[0m ] \033[0m"
+                exit 1
+            ;;
+            *)
+                continue
+        esac
+    done
 }
 
 # 定义跳过函数
 function user_pass_function () {
-while true;do
-    echo ""
-    read -p "是否确认?[Y/N]:" Y
-    case $Y in
-        [yY]|[yY][eE][sS])
-            echo -e "answer:  \\033[20G [ \e[1;32m是\e[0m ] \033[0m"
-            break
-            ;;
-        [nN]|[nN][oO])
-            echo -e "answer:  \\033[20G [ \e[1;32m否\e[0m ] \033[0m"
-            return 1
-            ;;
-        *)
-            continue
-    esac
-done
+    while true;do
+        echo ""
+        read -p "是否确认?[Y/N]:" Y
+        case $Y in
+            [yY]|[yY][eE][sS])
+                echo -e "answer:  \\033[20G [ \e[1;32m是\e[0m ] \033[0m"
+                break
+                ;;
+            [nN]|[nN][oO])
+                echo -e "answer:  \\033[20G [ \e[1;32m否\e[0m ] \033[0m"
+                return 1
+                ;;
+            *)
+                continue
+        esac
+    done
 }
 
 
@@ -935,10 +935,6 @@ EOF
     rsync -avz ca.pem /etc/kubernetes/pki/ca.crt
     rsync -avz ca-key.pem /etc/kubernetes/pki/ca.key
 
-    # 分发到其它master节点
-    for h in ${HOSTS[@]}; do
-        rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/ root@$h:/etc/kubernetes/pki/
-    done
     echo '安装k8s证书 done! '>>${install_log}
 }
 
@@ -1077,22 +1073,21 @@ EOF
             return_error_exit "kubeadm init"
             sleep 60
               [ ! -d $HOME/.kube ] && mkdir -p $HOME/.kube
-              rsync -az /etc/kubernetes/admin.conf $HOME/.kube/config
-              chown $(id -u):$(id -g) $HOME/.kube/config
+              ln -sf /etc/kubernetes/admin.conf $HOME/.kube/config
+              # chown $(id -u):$(id -g) $HOME/.kube/config
 
-            # 将ca相关文件传至其他master节点
-            CONTROL_PLANE_IPS=(${HOSTS[1]} ${HOSTS[2]})
-            for host in ${CONTROL_PLANE_IPS[@]}; do
-                $ssh_command root@$host "mkdir -p /etc/kubernetes/pki/etcd"
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/ca.crt root@$host:/etc/kubernetes/pki/ca.crt
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/ca.key root@$host:/etc/kubernetes/pki/ca.key
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/sa.key root@$host:/etc/kubernetes/pki/sa.key
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/sa.pub root@$host:/etc/kubernetes/pki/sa.pub
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/front-proxy-ca.crt root@$host:/etc/kubernetes/pki/front-proxy-ca.crt
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/front-proxy-ca.key root@$host:/etc/kubernetes/pki/front-proxy-ca.key
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/etcd/ca.crt root@$host:/etc/kubernetes/pki/etcd/ca.crt
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/etcd/ca.key root@$host:/etc/kubernetes/pki/etcd/ca.key
-                rsync -avz -e "${ssh_command}" /etc/kubernetes/admin.conf root@$host:/etc/kubernetes/admin.conf
+            # 将相关证书文件传至其他master节点
+            for ((i=$((${#HOSTS[@]}-1)); i>0; i--)); do
+                $ssh_command root@${HOSTS[$i]} "mkdir -p /etc/kubernetes/pki/etcd"
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/ca.crt root@${HOSTS[$i]}:/etc/kubernetes/pki/ca.crt
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/ca.key root@${HOSTS[$i]}:/etc/kubernetes/pki/ca.key
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/sa.key root@${HOSTS[$i]}:/etc/kubernetes/pki/sa.key
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/sa.pub root@${HOSTS[$i]}:/etc/kubernetes/pki/sa.pub
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/front-proxy-ca.crt root@${HOSTS[$i]}:/etc/kubernetes/pki/front-proxy-ca.crt
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/front-proxy-ca.key root@${HOSTS[$i]}:/etc/kubernetes/pki/front-proxy-ca.key
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/etcd/ca.crt root@${HOSTS[$i]}:/etc/kubernetes/pki/etcd/ca.crt
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/etcd/ca.key root@${HOSTS[$i]}:/etc/kubernetes/pki/etcd/ca.key
+                rsync -avz -e "${ssh_command}" /etc/kubernetes/admin.conf root@${HOSTS[$i]}:/etc/kubernetes/admin.conf
             done
         else
             yellow_echo "以下操作失败后可手动在相应节点执行"
@@ -1237,6 +1232,6 @@ function do_all() {
 
 do_all
 # 执行完毕的时间
-green_echo "本次安装花时:$SECONDS 秒"
+green_echo "$HOSTNAME 本次安装花时:$SECONDS 秒"
 echo '完成安装 '>>${install_log}
 
