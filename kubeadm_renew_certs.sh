@@ -13,6 +13,8 @@
 server0="master1:10.37.129.11"
 server1="master2:10.37.129.12"
 server2="master3:10.37.129.13"
+# 证书剩余天数自动更新
+expire_days="90"
 # 证书检查列表
 ca_certs_list=(
     "/etc/kubernetes/pki/ca.crt"
@@ -161,7 +163,7 @@ function check_certs_expire () {
 
     LEFT_DAYS=$(($(($END_TIME1-$NOW_TIME))/(60*60*24)))  # 到期时间减去目前时间再转化为天数
 
-    if [ $LEFT_DAYS  -lt 90  ]; then  # 当到期时间小于90天
+    if [ $LEFT_DAYS  -lt "$expire_days"  ]; then  # 当到期时间小于多少天
         return 0
     else
         echo "$(date +%F) 证书 [$domain] 还有 [$LEFT_DAYS] 天过期"
