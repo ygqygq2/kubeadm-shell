@@ -200,6 +200,7 @@ function renew_all_certs () {
     rm -f /var/lib/kubelet/pki/*
     systemctl restart kubelet
     rsync -avz /etc/kubernetes/manifests/ /etc/kubernetes/manifests.bak/
+    rm -f /etc/kubernetes/manifests/*.yaml
     sleep 30
     rsync -avz /etc/kubernetes/manifests.bak/ /etc/kubernetes/manifests/
 }
