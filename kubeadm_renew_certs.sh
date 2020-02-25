@@ -199,9 +199,9 @@ function renew_all_certs () {
     kubeadm alpha certs renew all /etc/kubernetes/kubeadmcfg.yaml
     rm -f /var/lib/kubelet/pki/*
     systemctl restart kubelet
-    mv /etc/kubernetes/manifests /tmp/manifests.bak
+    rsync -avz /etc/kubernetes/manifests/ /etc/kubernetes/manifests.bak/
     sleep 30
-    mv /tmp/manifests.bak /etc/kubernetes/manifests
+    rsync -avz /etc/kubernetes/manifests.bak/ /etc/kubernetes/manifests/
 }
 
 function renew_ca_certs () {
