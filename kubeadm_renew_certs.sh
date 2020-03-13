@@ -8,29 +8,6 @@
 # Description: 更新master节点证书
 ##############################################################
 
-##############################################################
-# 主机名:IP
-server0="master1:10.37.129.11"
-server1="master2:10.37.129.12"
-server2="master3:10.37.129.13"
-# 证书剩余天数自动更新
-expire_days="90"
-# 证书检查列表
-ca_certs_list=(
-    "/etc/kubernetes/pki/ca.crt"
-    "/etc/kubernetes/pki/etcd/ca.crt"
-    "/etc/kubernetes/pki/front-proxy-ca.crt"
-    )
-certs_list=(
-    "/etc/kubernetes/pki/apiserver.crt"
-    "/etc/kubernetes/pki/front-proxy-client.crt"
-    "/etc/kubernetes/pki/etcd/server.crt"
-    )
-##############################################################
-NAMES=(${server0%:*} ${server1%:*} ${server2%:*})
-HOSTS=(${server0#*:} ${server1#*:} ${server2#*:})
-##############################################################
-
 PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 
@@ -46,107 +23,11 @@ cd `dirname $0`
 SH_DIR=`pwd`
 ME=$0
 PARAMETERS=$*
-# 定义ssh参数
-ssh_port="22"
-ssh_parameters="-o StrictHostKeyChecking=no -o ConnectTimeout=60"
-ssh_command="ssh ${ssh_parameters} -p ${ssh_port}"
-scp_command="scp ${ssh_parameters} -P ${ssh_port}"
 
-# 定义日志
-install_log=/root/install_log.txt
+. $SH_DIR/config.sh
+. $SH_DIR/functions/base.sh
+setup_ssh_command
 
-#定义输出颜色函数
-function red_echo () {
-#用法:  red_echo "内容"
-    local what="$*"
-    echo -e "$(date +%F-%T) \e[1;31m ${what} \e[0m"
-}
-
-function green_echo () {
-#用法:  green_echo "内容"
-    local what="$*"
-    echo -e "$(date +%F-%T) \e[1;32m ${what} \e[0m"
-}
-
-function yellow_echo () {
-#用法:  yellow_echo "内容"
-    local what="$*"
-    echo -e "$(date +%F-%T) \e[1;33m ${what} \e[0m"
-}
-
-function blue_echo () {
-#用法:  blue_echo "内容"
-    local what="$*"
-    echo -e "$(date +%F-%T) \e[1;34m ${what} \e[0m"
-}
-
-function twinkle_echo () {
-    #用法:  twinkle_echo $(red_echo "内容")  ,此处例子为红色闪烁输出
-    local twinkle='\e[05m'
-    local what="${twinkle} $*"
-    echo -e "$(date +%F-%T) ${what}"
-}
-
-function return_echo () {
-    if [ $? -eq 0 ]; then
-        echo -n "$* " && green_echo "成功"
-        return 0
-    else
-        echo -n "$* " && red_echo "失败"
-        return 1
-    fi
-}
-
-function return_error_exit () {
-    [ $? -eq 0 ] && local REVAL="0"
-    local what=$*
-    if [ "$REVAL" = "0" ];then
-        [ ! -z "$what" ] && { echo -n "$* " && green_echo "成功" ; }
-    else
-        red_echo "$* 失败，脚本退出"
-        exit 1
-    fi
-}
-
-# 定义确认函数
-function user_verify_function () {
-    while true;do
-        echo ""
-        read -p "是否确认?[Y/N]:" Y
-        case $Y in
-            [yY]|[yY][eE][sS])
-                echo -e "answer:  \\033[20G [ \e[1;32m是\e[0m ] \033[0m"
-                break
-            ;;
-            [nN]|[nN][oO])
-                echo -e "answer:  \\033[20G [ \e[1;32m否\e[0m ] \033[0m"
-                exit 1
-            ;;
-            *)
-                continue
-        esac
-    done
-}
-
-# 定义跳过函数
-function user_pass_function () {
-    while true;do
-        echo ""
-        read -p "是否确认?[Y/N]:" Y
-        case $Y in
-            [yY]|[yY][eE][sS])
-                echo -e "answer:  \\033[20G [ \e[1;32m是\e[0m ] \033[0m"
-                break
-                ;;
-            [nN]|[nN][oO])
-                echo -e "answer:  \\033[20G [ \e[1;32m否\e[0m ] \033[0m"
-                return 1
-                ;;
-            *)
-                continue
-        esac
-    done
-}
 
 function check_certs_expire () {
     # 检测域名或者证书过期剩余天数
@@ -196,7 +77,7 @@ function renew_all_certs () {
     # 续期除CA以外其它证书
     yellow_echo "主机名：$HOSTNAME"
     kubeadm alpha certs check-expiration
-    kubeadm alpha certs renew all /etc/kubernetes/kubeadmcfg.yaml
+    kubeadm alpha certs renew all --config /etc/kubernetes/kubeadmcfg.yaml
     rm -f /var/lib/kubelet/pki/*
     systemctl restart kubelet
     rsync -avz /etc/kubernetes/manifests/ /etc/kubernetes/manifests.bak/
@@ -261,7 +142,7 @@ function do_all() {
     cd $SH_DIR
     # 第一台master节点
     if [[ "$HOSTNAME" = "${NAMES[0]}" ]]; then
-        check_running=$(ps aux|grep "/bin/bash /tmp/$(basename $ME)"|grep -v grep)
+        check_running=$(ps aux|grep "/bin/bash $SH_DIR/$(basename $ME)"|grep -v grep)
         if [ -z "$check_running" ]; then  # 为空表示非远程执行脚本
             conf_type
             user_verify_function
@@ -278,9 +159,10 @@ function do_all() {
             for ((i=1; i<=$((${#HOSTS[@]}-1)); i++)); do
                 # 将脚本分发至master节点
                 cd $SH_DIR
-                rsync -avz -e "${ssh_command}" $ME root@${HOSTS[$i]}:/tmp/
+                $ssh_command root@${HOSTS[$i]} "mkdir -p $SH_DIR"
+                rsync -avz -e "${ssh_command}" $SH_DIR/ root@${HOSTS[$i]}:$SH_DIR/
                 sleep 10
-                $ssh_command root@${HOSTS[$i]} "/bin/bash /tmp/$(basename $ME)"
+                $ssh_command root@${HOSTS[$i]} "/bin/bash $SH_DIR/$(basename $ME)"
             done
         fi
     else

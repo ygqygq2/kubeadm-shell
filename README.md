@@ -4,8 +4,9 @@
 
 脚本实现功能：
 - [x] 新建多master节点（至少3台，奇数）的高可用kubernetes集群；
-- [x]  新建单master节点的kubernetes；
+- [x] 新建单master节点的kubernetes；
 - [x] 添加work节点；
+- [x] 支持离线安装，前提是使用CentOS7的最小化安装准备安装包；
 
 
 # 2. 使用说明
@@ -16,8 +17,38 @@
 
 ![hosts设置](./images/1575422986361.png)
 
-脚本修改，有需要添加更多master节点，添加`serverX`和修改`NAMES` `HOSTS`。
-![脚本设置](./images/1575423138792.png)
+`config.sh`配置，有需要添加更多master节点，添加`serverX`和修改`NAMES` `HOSTS`。
+
+```bash
+##############################################################
+## 集群安装和证书更新相关共同需要的参数设置
+# 主机名:IP，需要执行脚本前设置
+server0="master1:10.37.129.11"
+server1="master2:10.37.129.12"
+server2="master3:10.37.129.13"
+##############################################################
+## 集群安装相关参数设置
+# 是否离线安装集群，true为离线安装
+INSTALL_OFFLINE="false"
+# 是否安装集群，false为添加节点，true为安装集群
+INSTALL_CLUSTER="true"
+# 是否安装Keepalived+HAproxy
+INSTALL_SLB="true"
+# 是否脚本生成CA证书
+GENERATE_CA="false"
+# 定义Kubernetes信息
+KUBEVERSION="v1.17.0"
+DOCKERVERSION="18.09.7"
+KUBERNETES_CNI_VERSION=""
+IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
+# k8s master VIP（单节点为节点IP）
+k8s_master_vip="10.37.129.10"
+# K8S网段
+podSubnet="10.244.0.0/16"
+# 可获取kubeadm join命令的节点IP
+k8s_join_ip=$k8s_master_vip
+##############################################################
+```
 
 >**注意**：
 >1. 在第一台master节点上执行此脚本；
@@ -33,9 +64,38 @@
 
 ## 2.2 单master kubernetes安装
 
-提前关闭selinux（需要重启生效），master节点设置hostname，并添加hosts。
+提前关闭selinux（需要重启生效），master节点设置hostname，并添加hosts。`config.sh`配置：
 
-![脚本设置](./images/1575424001920.png)
+```bash
+##############################################################
+## 集群安装和证书更新相关共同需要的参数设置
+# 主机名:IP，需要执行脚本前设置
+server0="master1:10.37.129.11"
+#server1="master2:10.37.129.12"
+#server2="master3:10.37.129.13"
+##############################################################
+## 集群安装相关参数设置
+# 是否离线安装集群，true为离线安装
+INSTALL_OFFLINE="false"
+# 是否安装集群，false为添加节点，true为安装集群
+INSTALL_CLUSTER="true"
+# 是否安装Keepalived+HAproxy
+INSTALL_SLB="false"
+# 是否脚本生成CA证书
+GENERATE_CA="false"
+# 定义Kubernetes信息
+KUBEVERSION="v1.17.0"
+DOCKERVERSION="18.09.7"
+KUBERNETES_CNI_VERSION=""
+IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
+# k8s master VIP（单节点为节点IP）
+k8s_master_vip="10.37.129.11"
+# K8S网段
+podSubnet="10.244.0.0/16"
+# 可获取kubeadm join命令的节点IP
+k8s_join_ip=$k8s_master_vip
+##############################################################
+```
 
 其它说明同上。
 
@@ -43,15 +103,38 @@
 
 提前关闭selinux（需要重启生效），work节点设置hostname，并添加hosts（最好所有kubernetes节点统一相同hosts内容）。
 
-关键地方设置，脚本使用ssh跳至master节点执行`kubeadm token create --print-join-command`获取添加节点命令，所以可修改`k8s_master_vip`或`k8s_join_ip`为能执行此命令的节点IP即可。
+关键地方设置，脚本使用ssh跳至master节点执行`kubeadm token create --print-join-command`获取添加节点命令，所以可修改`k8s_master_vip`或`k8s_join_ip`为能执行此命令的节点IP即可。`config.sh`配置：
 
 ```bash
+##############################################################
+## 集群安装和证书更新相关共同需要的参数设置
+# 主机名:IP，需要执行脚本前设置
+server0="master1:10.37.129.11"
+server1="master2:10.37.129.12"
+server2="master3:10.37.129.13"
+##############################################################
+## 集群安装相关参数设置
+# 是否离线安装集群，true为离线安装
+INSTALL_OFFLINE="false"
+# 是否安装集群，false为添加节点，true为安装集群
 INSTALL_CLUSTER="false"
+# 是否安装Keepalived+HAproxy
 INSTALL_SLB="false"
-k8s_master_vip="K8S-MASTER-CAN-SSH"
+# 是否脚本生成CA证书
+GENERATE_CA="false"
+# 定义Kubernetes信息
+KUBEVERSION="v1.17.0"
+DOCKERVERSION="18.09.7"
+KUBERNETES_CNI_VERSION=""
+IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
+# k8s master VIP（单节点为节点IP）
+k8s_master_vip="10.37.129.10"
+# K8S网段
+podSubnet="10.244.0.0/16"
+# 可获取kubeadm join命令的节点IP
+k8s_join_ip=$k8s_master_vip
+##############################################################
 ```
-
-![脚本设置](./images/1575424354218.png)
 
 # 3. 失败的节点`kubeadm reset`
 安装过程中，如有节点失败，可使用`kubeadm reset`重置后，重新安装。
@@ -59,4 +142,4 @@ k8s_master_vip="K8S-MASTER-CAN-SSH"
 >**注意**
 >此命令非常危险，一定要确认是否在正确节点执行。
 
-![enter description here](./images/1575423570194.png)
+![kubeadm reset](./images/1575423570194.png)
