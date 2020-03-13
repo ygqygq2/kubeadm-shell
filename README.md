@@ -147,7 +147,7 @@ k8s_join_ip=$k8s_master_vip
 
 ```bash
 # 是否离线安装集群，true为离线安装
-INSTALL_OFFLINE="false"
+INSTALL_OFFLINE="true"
 ```
 
 执行脚本`k8s_offline_package.sh`，成功后整个`kubeadm-shell`目录即为一个离线安装包。
