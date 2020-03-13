@@ -26,7 +26,6 @@ PARAMETERS=$*
 
 . $SH_DIR/config.sh
 . $SH_DIR/functions/base.sh
-setup_ssh_command
 
 
 function check_certs_expire () {

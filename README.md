@@ -10,6 +10,10 @@
 
 
 # 2. 使用说明
+系统：CentOS7
+
+>**重要**
+>使用时请将整个仓库文件一起打包上传至服务器。
 
 ## 2.1 高可用集群安装
 
@@ -17,7 +21,7 @@
 
 ![hosts设置](./images/1575422986361.png)
 
-`config.sh`配置，有需要添加更多master节点，添加`serverX`和修改`NAMES` `HOSTS`。
+`config.sh`脚本修改，有需要添加更多master节点，添加`serverX`和修改`NAMES` `HOSTS`。
 
 ```bash
 ##############################################################
@@ -103,7 +107,7 @@ k8s_join_ip=$k8s_master_vip
 
 提前关闭selinux（需要重启生效），work节点设置hostname，并添加hosts（最好所有kubernetes节点统一相同hosts内容）。
 
-关键地方设置，脚本使用ssh跳至master节点执行`kubeadm token create --print-join-command`获取添加节点命令，所以可修改`k8s_master_vip`或`k8s_join_ip`为能执行此命令的节点IP即可。`config.sh`配置：
+关键地方设置，脚本使用ssh跳至master节点执行`kubeadm token create --print-join-command`获取添加节点命令，所以可修改`k8s_master_vip`或`k8s_join_ip`为能执行此命令的节点IP即可。
 
 ```bash
 ##############################################################
@@ -136,6 +140,17 @@ k8s_join_ip=$k8s_master_vip
 ##############################################################
 ```
 
+## 2.4 离线安装
+前提：在最小化的CentOS7下，能正常解析和上网。    
+
+修改`config.sh`配置，`INSTALL_OFFLINE="true"`
+
+```bash
+# 是否离线安装集群，true为离线安装
+INSTALL_OFFLINE="false"
+```
+
+执行脚本`k8s_offline_package.sh`，成功后整个`kubeadm-shell`目录即为一个离线安装包。
 # 3. 失败的节点`kubeadm reset`
 安装过程中，如有节点失败，可使用`kubeadm reset`重置后，重新安装。
 
