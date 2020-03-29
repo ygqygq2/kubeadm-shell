@@ -23,7 +23,8 @@ function install_k8s() {
         cat > /tmp/${HOST}/kubeadmcfg.yaml << EOF
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
-mode: "ipvs"
+mode: "${KUBE_PROXY_MODE}"
+metricsBindAddress: 0.0.0.0:10249
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration

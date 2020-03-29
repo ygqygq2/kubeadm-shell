@@ -617,6 +617,11 @@ net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 vm.swappiness=0
 net.ipv4.ip_forward = 1
+net.ipv4.tcp_keepalive_time = 600
+net.ipv4.tcp_keepalive_intvl = 30
+net.ipv4.tcp_keepalive_probes = 10
+vm.overcommit_memory = 0
+net.ipv4.tcp_slow_start_after_idle = 0
 EOF
     sysctl --system
     echo '设置开启转发内核参数 done! '>>${install_log}
