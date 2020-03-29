@@ -5,7 +5,7 @@
 # Author: Chinge_Yang
 # Blog: https://ygqygq2.blog.51cto.com
 # Created Time : 2020-03-12 11:39:56
-# Description:
+# Description: 配置文件脚本
 ##############################################################
 
 ##############################################################
@@ -25,7 +25,7 @@ INSTALL_SLB="true"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.17.0"
+KUBEVERSION="v1.18.0"
 DOCKERVERSION="18.09.7"
 KUBERNETES_CNI_VERSION=""
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
@@ -33,6 +33,8 @@ IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
 k8s_master_vip="10.37.129.10"
 # K8S网段
 podSubnet="10.244.0.0/16"
+# kube-proxy转发模式，ipvs/iptables
+KUBE_PROXY_MODE="ipvs"
 # 可获取kubeadm join命令的节点IP
 k8s_join_ip=$k8s_master_vip
 ##############################################################
