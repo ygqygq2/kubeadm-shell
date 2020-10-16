@@ -80,9 +80,9 @@ function do_all() {
                 ready_local_yum
             fi
             # 系统检查
-            check_system
+#            check_system
             # 系统优化
-            system_opt
+#            system_opt
             # 安装docker-ce等
             init_k8s
             # 导入离线images
@@ -109,9 +109,9 @@ function do_all() {
             ready_local_yum
         fi
         # 系统检查
-        check_system
+#        check_system
         # 系统优化
-        system_opt
+#        system_opt
         # 安装docker-ce等
         init_k8s
         # 导入离线images
