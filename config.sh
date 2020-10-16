@@ -25,8 +25,8 @@ INSTALL_SLB="true"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.18.0"
-DOCKERVERSION="18.09.7"
+KUBEVERSION="v1.19.2"
+DOCKERVERSION="19.03.13"
 KUBERNETES_CNI_VERSION=""
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
 # k8s master VIP（单节点为节点IP）
