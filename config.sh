@@ -25,8 +25,12 @@ INSTALL_SLB="true"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.20.8"
+KUBEVERSION="v1.21.2"
+# 定义安装 Container runtimes: docker/containerd/crio
+INSTALL_CR="docker"
+# docker 版本, INSTALL_CR="docker"时设置
 DOCKERVERSION="19.03.13"
+#
 KUBERNETES_CNI_VERSION=""
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
 # k8s master VIP（单节点为节点IP）
