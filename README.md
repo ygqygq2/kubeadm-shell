@@ -8,6 +8,11 @@
 - [x] 添加work节点；
 - [x] 支持离线安装，前提是使用CentOS7的最小化安装准备安装包；
 
+>离线安装说明
+>1. 离线安装已支持 docker 安装 kubernetes； 
+>2. 离线安装支持 containerd 安装 kubernetes（开发中）；
+>3. 因 crio 没有镜像管理功能，不支持离线安装；
+
 
 # 2. 使用说明
 系统：CentOS7

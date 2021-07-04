@@ -145,93 +145,6 @@ gpgcheck=0
 EOF
     rpm --import https://mirrors.aliyun.com/epel/RPM-GPG-KEY-EPEL-7
 
-    cat > /etc/yum.repos.d/docker-ce.repo <<EOF
-[docker-ce-stable]
-name=Docker CE Stable - \$basearch
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/\$basearch/stable
-enabled=1
-gpgcheck=0
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-stable-debuginfo]
-name=Docker CE Stable - Debuginfo \$basearch
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/debug-\$basearch/stable
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-stable-source]
-name=Docker CE Stable - Sources
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/source/stable
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-edge]
-name=Docker CE Edge - \$basearch
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/\$basearch/edge
-enabled=1
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-edge-debuginfo]
-name=Docker CE Edge - Debuginfo \$basearch
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/debug-\$basearch/edge
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-edge-source]
-name=Docker CE Edge - Sources
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/source/edge
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-test]
-name=Docker CE Test - \$basearch
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/\$basearch/test
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-test-debuginfo]
-name=Docker CE Test - Debuginfo \$basearch
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/debug-\$basearch/test
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-test-source]
-name=Docker CE Test - Sources
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/source/test
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-nightly]
-name=Docker CE Nightly - \$basearch
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/\$basearch/nightly
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-nightly-debuginfo]
-name=Docker CE Nightly - Debuginfo \$basearch
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/debug-\$basearch/nightly
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
-[docker-ce-nightly-source]
-name=Docker CE Nightly - Sources
-baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/source/nightly
-enabled=0
-gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-EOF
-    rpm --import https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
-
     cat > /etc/yum.repos.d/kubernetes.repo <<EOF
 [kubernetes]
 name=Kubernetes
@@ -580,6 +493,94 @@ EOF
 }
 
 function install_docker () {
+    # 准备 docker ce yum 源
+    cat > /etc/yum.repos.d/docker-ce.repo <<EOF
+[docker-ce-stable]
+name=Docker CE Stable - \$basearch
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/\$basearch/stable
+enabled=1
+gpgcheck=0
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-stable-debuginfo]
+name=Docker CE Stable - Debuginfo \$basearch
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/debug-\$basearch/stable
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-stable-source]
+name=Docker CE Stable - Sources
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/source/stable
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-edge]
+name=Docker CE Edge - \$basearch
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/\$basearch/edge
+enabled=1
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-edge-debuginfo]
+name=Docker CE Edge - Debuginfo \$basearch
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/debug-\$basearch/edge
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-edge-source]
+name=Docker CE Edge - Sources
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/source/edge
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-test]
+name=Docker CE Test - \$basearch
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/\$basearch/test
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-test-debuginfo]
+name=Docker CE Test - Debuginfo \$basearch
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/debug-\$basearch/test
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-test-source]
+name=Docker CE Test - Sources
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/source/test
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-nightly]
+name=Docker CE Nightly - \$basearch
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/\$basearch/nightly
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-nightly-debuginfo]
+name=Docker CE Nightly - Debuginfo \$basearch
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/debug-\$basearch/nightly
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+[docker-ce-nightly-source]
+name=Docker CE Nightly - Sources
+baseurl=https://mirrors.aliyun.com/docker-ce/linux/centos/7/source/nightly
+enabled=0
+gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+EOF
+    rpm --import https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
     # 安装 docker-ce 并启动
     yum -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
     systemctl enable docker && systemctl restart docker
@@ -605,6 +606,13 @@ EOF
     mkdir -p /etc/containerd
     containerd config default | sudo tee /etc/containerd/config.toml
     systemctl restart containerd
+    cat > /etc/crictl.yaml << EOF
+runtime-endpoint: unix:///var/run/containerd/containerd.sock
+image-endpoint: unix:///var/run/containerd/containerd.sock
+timeout: 2
+debug: false
+pull-image-on-create: false
+EOF
     echo '安装containerd done! '>>${install_log}
 }
 
@@ -626,7 +634,15 @@ EOF
       https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
     curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
       https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+    sed -i 's@gpgcheck=1@gpgcheck=0@g' /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
     yum install -y cri-o    
+    cat > /etc/crictl.yaml << EOF
+runtime-endpoint: unix:///var/run/crio/crio.sock
+image-endpoint: unix:///var/run/crio/crio.sock
+timeout: 2
+debug: false
+pull-image-on-create: false
+EOF
     systemctl daemon-reload
     systemctl enable crio --now
     echo '安装crio done! '>>${install_log}
