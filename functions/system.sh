@@ -579,8 +579,8 @@ EOF
     ########################################
 }
 
-function init_k8s () {
-    # 安装docker-ce并启动
+function install_docker () {
+    # 安装 docker-ce 并启动
     yum -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
     systemctl enable docker && systemctl restart docker
     docker version | tee /tmp/docker-version.log
@@ -590,27 +590,49 @@ function init_k8s () {
         user_verify_function
     fi
     echo '安装docker ce done! '>>${install_log}
+}
 
-    # 安装kubelet
-    yum -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+-$KUBERNETES_CNI_VERSION} kubelet-${KUBEVERSION/v/} kubeadm-${KUBEVERSION/v/} kubectl-${KUBEVERSION/v/} ipvsadm
-    systemctl enable kubelet && systemctl start kubelet
-    echo '安装kubelet kubeadm kubectl ipvsadm done! '>>${install_log}
+function install_containerd () {
+    # 安装 containerd
+    cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
 
-    # 防火墙设置，否则可能不能转发
-    iptables -P FORWARD ACCEPT
+    modprobe overlay
+    modprobe br_netfilter
 
-    # 关闭交换分区，并永久注释
-    swapoff -a
-    swap_line=$(grep '^.*swap' /etc/fstab)
-    if [ ! -z "$swap_line" ]; then
-        sed -i "s@$swap_line@#$swap_line@g" /etc/fstab
-    fi
-    echo '关闭交换分区 done! '>>${install_log}
+    mkdir -p /etc/containerd
+    containerd config default | sudo tee /etc/containerd/config.toml
+    systemctl restart containerd
+    echo '安装containerd done! '>>${install_log}
+}
 
-    # 开启防火墙规则或者关闭防火墙
-    # firewall-cmd --add-rich-rule 'rule family=ipv4 source address=192.168.105.0/24 accept' # # 指定源IP（段），即时生效
-    # firewall-cmd --add-rich-rule 'rule family=ipv4 source address=192.168.105.0/24 accept' --permanent # 指定源IP（段），永久生效
+function install_crio () {
+    # 安装 crio, ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/
+    cat <<EOF | sudo tee /etc/modules-load.d/crio.conf
+overlay
+br_netfilter
+EOF
 
+    modprobe overlay
+    modprobe br_netfilter
+
+    # ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2
+    OS="CentOS_7"
+    local tmp_VERSION=${KUBEVERSION#*v}
+    local VERSION=${tmp_VERSION%.*}
+    curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo \
+      https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
+    curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
+      https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+    yum install -y cri-o    
+    systemctl daemon-reload
+    systemctl enable crio --now
+    echo '安装crio done! '>>${install_log}
+}
+
+function init_k8s () {
     # 配置转发相关参数，否则可能会出错
     cat <<EOF >  /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
@@ -653,4 +675,36 @@ done
 EOF
     chmod a+x /etc/sysconfig/modules/ipvs.modules
     echo '设置开机加载内核模块 done! '>>${install_log}
+
+    # 判断安装容器类型
+    case $INSTALL_CR in
+        docker)
+        install_docker;;
+        containerd)
+        install_containerd;;
+        crio)
+        install_crio;;
+        *)
+        install_docker
+    esac
+
+    # 安装kubelet
+    yum -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+-$KUBERNETES_CNI_VERSION} kubelet-${KUBEVERSION/v/} kubeadm-${KUBEVERSION/v/} kubectl-${KUBEVERSION/v/} ipvsadm
+    systemctl enable kubelet && systemctl start kubelet
+    echo '安装kubelet kubeadm kubectl ipvsadm done! '>>${install_log}
+
+    # 防火墙设置，否则可能不能转发
+    iptables -P FORWARD ACCEPT
+
+    # 关闭交换分区，并永久注释
+    swapoff -a
+    swap_line=$(grep '^.*swap' /etc/fstab)
+    if [ ! -z "$swap_line" ]; then
+        sed -i "s@$swap_line@#$swap_line@g" /etc/fstab
+    fi
+    echo '关闭交换分区 done! '>>${install_log}
+
+    # 开启防火墙规则或者关闭防火墙
+    # firewall-cmd --add-rich-rule 'rule family=ipv4 source address=192.168.105.0/24 accept' # # 指定源IP（段），即时生效
+    # firewall-cmd --add-rich-rule 'rule family=ipv4 source address=192.168.105.0/24 accept' --permanent # 指定源IP（段），永久生效
 }
