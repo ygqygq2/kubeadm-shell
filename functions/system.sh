@@ -492,7 +492,7 @@ EOF
     ########################################
 }
 
-function install_docker () {
+function ready_docker_yum () {
     # 准备 docker ce yum 源
     cat > /etc/yum.repos.d/docker-ce.repo <<EOF
 [docker-ce-stable]
@@ -580,7 +580,10 @@ gpgcheck=1
 gpgkey=https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
 EOF
     rpm --import https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+}
 
+function install_docker () {
+    ready_docker_yum
     # 安装 docker-ce 并启动
     yum -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
     systemctl enable docker && systemctl restart docker
@@ -594,6 +597,8 @@ EOF
 }
 
 function install_containerd () {
+    ready_docker_yum
+    yum -y install containerd.io
     # 安装 containerd
     cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
 overlay
