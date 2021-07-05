@@ -610,6 +610,10 @@ EOF
 
     mkdir -p /etc/containerd
     containerd config default | sudo tee /etc/containerd/config.toml
+    sed -i "s#k8s.gcr.io#${IMAGE_REPOSITORY}#g" /etc/containerd/config.toml
+    #sed -i '/containerd.runtimes.runc.options/a\ \ \ \ \ \ \ \ \ \ \ \ SystemdCgroup = true' /etc/containerd/config.toml
+    #sed -i "s#https://registry-1.docker.io#https://registry.cn-hangzhou.aliyuncs.com#g" /etc/containerd/config.toml 
+    
     systemctl restart containerd
     cat > /etc/crictl.yaml << EOF
 runtime-endpoint: unix:///var/run/containerd/containerd.sock
@@ -648,6 +652,7 @@ timeout: 2
 debug: false
 pull-image-on-create: false
 EOF
+    sed -i "s#k8s.gcr.io#${IMAGE_REPOSITORY}#g" /etc/crio/crio.conf
     systemctl daemon-reload
     systemctl enable crio --now
     echo '安装crio done! '>>${install_log}
