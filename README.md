@@ -10,7 +10,7 @@
 
 >离线安装说明
 >1. 离线安装已支持 docker 安装 kubernetes； 
->2. 离线安装支持 containerd 安装 kubernetes（开发中）；
+>2. 离线安装支持 containerd 安装 kubernetes；
 >3. 因 crio 没有镜像管理功能，不支持离线安装；
 
 
