@@ -9,6 +9,19 @@
 ##############################################################
 
 function load_images () {
+    # 判断容器管理命令
+    case $INSTALL_CR in
+        docker)
+            cli_command="docker"
+        ;;
+        containerd)
+            cli_command="nerdctl --namespace=k8s.io"
+        ;;
+        *)
+            red_echo "不支持的 Container Runtime 类型"
+            exit 1                                                                                                                                                                          
+    esac
+
     cd $images_dir
-    ls *.tar | awk '{print "docker load -i " $0}' | sh
+    ls *.tar | awk '{print "'$cli_command' load -i " $0}' | sh
 }
