@@ -31,14 +31,35 @@ function download_rpm () {
 
     # 添加阿里云Docker源
     yum -y install yum-utils
-    yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 
-    # docker ce
-    yum install --downloadonly --downloaddir=$packages_dir \
-        docker-ce-$DOCKERVERSION \
-        docker-ce-cli-$DOCKERVERSION \
-        containerd.io
-    curl https://mirrors.aliyun.com/docker-ce/linux/centos/gpg -o $gpg_dir/Docker.gpg
+    case $INSTALL_CR in
+        docker|containerd)
+            yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+        yum install --downloadonly --downloaddir=$packages_dir \
+            docker-ce-$DOCKERVERSION \
+            docker-ce-cli-$DOCKERVERSION \
+            containerd.io
+        curl https://mirrors.aliyun.com/docker-ce/linux/centos/gpg -o $gpg_dir/Docker.gpg
+        ;;
+        ciro)
+			# ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2
+            OS="CentOS_7"
+            local tmp_VERSION=${KUBEVERSION#*v}
+            local VERSION=${tmp_VERSION%.*}
+            curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo \
+			  https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
+            curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
+              https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+            sed -i 's@gpgcheck=1@gpgcheck=0@g' /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+			yum install --downloadonly --downloaddir=$packages_dir \
+                cri-o
+        ;;
+        *)
+            red_echo "不支持的 Container Runtime 类型"
+            exit 1
+    esac
+
+    # 因为要使用docker 导出镜像，安装 docker ce
     yum -y install docker-ce-$DOCKERVERSION
     systemctl start docker
 
@@ -72,4 +93,9 @@ EOF
         kubelet-${KUBEVERSION/v/} \
         kubeadm-${KUBEVERSION/v/} \
         kubectl-${KUBEVERSION/v/}
+
+    # 安装 nerdctl
+    cd $packages_dir
+    wget https://github.com/containerd/nerdctl/releases/download/v0.10.0/nerdctl-0.10.0-linux-amd64.tar.gz -O \
+        nerdctl-0.10.0-linux-amd64.tar.gz                                                                                                                                                   
 }

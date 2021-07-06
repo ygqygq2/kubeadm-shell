@@ -157,6 +157,27 @@ EOF
     rpm --import https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg \
         https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 
+    # 判断 container runtime 类型
+    case $INSTALL_CR in
+        docker|containerd)
+            ready_docker_yum
+        ;;
+        crio)
+	        # ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2
+	        OS="CentOS_7"
+	        local tmp_VERSION=${KUBEVERSION#*v}
+	        local VERSION=${tmp_VERSION%.*}
+	        curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo \                                                                                                                     
+	          https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
+	        curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
+	          https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+	        sed -i 's@gpgcheck=1@gpgcheck=0@g' /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+        ;;
+        *)
+            red_echo "不支持的 Container Runtime 类型"
+            exit 1                                                                                                                                                                          
+    esac
+
     echo '添加yum源 done!'>>${install_log}
     yum clean all
     yum makecache
@@ -583,7 +604,6 @@ EOF
 }
 
 function install_docker () {
-    ready_docker_yum
     # 安装 docker-ce 并启动
     yum -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
     systemctl enable docker && systemctl restart docker
@@ -597,9 +617,10 @@ function install_docker () {
 }
 
 function install_containerd () {
-    ready_docker_yum
-    yum -y install containerd.io
     # 安装 containerd
+    yum -y install containerd.io
+    # 安装 nerdctl
+    tar -zxvf $packages_dir/nerdctl-0.10.0-linux-amd64.tar.gz -C /usr/local/bin/
     cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
 overlay
 br_netfilter
@@ -635,15 +656,6 @@ EOF
     modprobe overlay
     modprobe br_netfilter
 
-    # ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2
-    OS="CentOS_7"
-    local tmp_VERSION=${KUBEVERSION#*v}
-    local VERSION=${tmp_VERSION%.*}
-    curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo \
-      https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
-    curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
-      https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
-    sed -i 's@gpgcheck=1@gpgcheck=0@g' /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
     yum install -y cri-o    
     cat > /etc/crictl.yaml << EOF
 runtime-endpoint: unix:///var/run/crio/crio.sock
