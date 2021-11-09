@@ -11,13 +11,13 @@
 function install_cfssl() {
     #  安装cfssl
     [ -f /usr/local/sbin/cfssl ] && yellow_echo "No need to install cfssl" && return 0 
-    wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -O cfssl_linux-amd64
-    wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 -O cfssljson_linux-amd64
-    wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64 -O cfssl-certinfo_linux-amd64
-    chmod +x cfssl_linux-amd64 cfssljson_linux-amd64 cfssl-certinfo_linux-amd64
-    \mv cfssl_linux-amd64 /usr/local/sbin/cfssl
-    \mv cfssljson_linux-amd64 /usr/local/sbin/cfssljson
-    \mv cfssl-certinfo_linux-amd64 /usr/local/sbin/cfssl-certinfo
+    wget https://github.com/cloudflare/cfssl/releases/download/v1.6.1/cfssl_1.6.1_linux_amd64 -O cfssl_linux_amd64
+    wget https://github.com/cloudflare/cfssl/releases/download/v1.6.1/cfssljson_1.6.1_linux_amd64 -O cfssljson_linux_amd64
+    wget https://github.com/cloudflare/cfssl/releases/download/v1.6.1/cfssl-certinfo_1.6.1_linux_amd64 -O cfssl-certinfo_linux_amd64
+    chmod +x cfssl_linux_amd64 cfssljson_linux_amd64 cfssl-certinfo_linux_amd64
+    \mv cfssl_linux_amd64 /usr/local/sbin/cfssl
+    \mv cfssljson_linux_amd64 /usr/local/sbin/cfssljson
+    \mv cfssl-certinfo_linux_amd64 /usr/local/sbin/cfssl-certinfo
     echo '安装cfssl done! '>>${install_log}
 }
 
@@ -70,7 +70,10 @@ EOF
     {
       "CN": "kubernetes"
     }
-  ]
+  ],
+  "ca": {
+    "expiry": "876000h"
+  }
 }
 EOF
 
