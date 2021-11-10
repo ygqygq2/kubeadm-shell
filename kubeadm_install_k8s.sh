@@ -31,9 +31,6 @@ packages_dir=$SH_DIR/packages
 images_dir=$SH_DIR/images
 gpg_dir=$packages_dir/gpg
 
-# 定义日志
-install_log=/root/install_log.txt
-
 . $SH_DIR/config.sh
 . $SH_DIR/functions/base.sh
 . $SH_DIR/functions/load_images.sh

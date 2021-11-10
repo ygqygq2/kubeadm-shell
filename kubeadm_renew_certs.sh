@@ -26,6 +26,7 @@ PARAMETERS=$*
 
 . $SH_DIR/config.sh
 . $SH_DIR/functions/base.sh
+. $SH_DIR/functions/setup_ssl.sh
 
 
 function check_certs_expire () {
@@ -75,8 +76,8 @@ function conf_type () {
 function renew_all_certs () {
     # 续期除CA以外其它证书
     yellow_echo "主机名：$HOSTNAME"
-    kubeadm alpha certs check-expiration
-    kubeadm alpha certs renew all --config /etc/kubernetes/kubeadmcfg.yaml
+    kubeadm certs check-expiration
+    kubeadm certs renew all --config /etc/kubernetes/kubeadmcfg.yaml
     rm -f /var/lib/kubelet/pki/*
     systemctl restart kubelet
     rsync -avz /etc/kubernetes/manifests/ /etc/kubernetes/manifests.bak/
@@ -85,10 +86,29 @@ function renew_all_certs () {
     rsync -avz /etc/kubernetes/manifests.bak/ /etc/kubernetes/manifests/
 }
 
+function renew_secret_ca_certs () {
+    base64_encoded_ca="$(base64 -w0 /etc/kubernetes/pki/ca.crt)"
+    
+    for namespace in $(kubectl get ns --no-headers | awk '{print $1}'); do
+        for token in $(kubectl get secrets --namespace "$namespace" --field-selector type=kubernetes.io/service-account-token -o name); do
+            kubectl get $token --namespace "$namespace" -o yaml | \
+              /bin/sed "s/\(ca.crt:\).*/\1 ${base64_encoded_ca}/" | \
+              kubectl apply -f -
+        done
+    done
+  
+    kubectl get cm/cluster-info --namespace kube-public -o yaml | \
+      /bin/sed "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" | \
+      kubectl apply -f -
+    
+  #  /bin/sed -i "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" kubelet.conf
+  #  /bin/sed -i "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" scheduler.conf
+}
+
 function renew_ca_certs () {
     yellow_echo "主机名：$HOSTNAME"
     # 备份
-    mkdir -p /etc/kubernetes/conf_bak
+    mkdir -p /etc/kubernetes/conf.bak
     rsync -avz /etc/kubernetes/pki/ /etc/kubernetes/pki.bak/
     rm -f /etc/kubernetes/pki/{apiserver*,front-proxy-client.*}
     rm -f /etc/kubernetes/pki/etcd/{healthcheck-client.*,peer.*,server.*}
@@ -96,15 +116,33 @@ function renew_ca_certs () {
         rm -f /etc/kubernetes/pki/{ca.*,front-proxy-ca.*}
         rm -f /etc/kubernetes/pki/etcd/ca.*
     fi
-    rsync -avz /etc/kubernetes/{admin.conf,kubelet.conf,controller-manager.conf,scheduler.conf} /etc/kubernetes/conf_bak/
+
+    # 生成证书
+    if [[ "$HOSTNAME" = "${NAMES[0]}" ]]; then
+        if [ "$GENERATE_CA" != "false" ]; then
+            # 安装证书工具
+            install_cfssl
+            # 生成ca证书
+            generate_cert
+        fi
+    fi
+
+    # 生成证书和配置文件
+    echo "kubeadm init phase certs all --config /etc/kubernetes/kubeadmcfg.yaml"
+    kubeadm init phase certs all --config /etc/kubernetes/kubeadmcfg.yaml
+
+    if [[ "$HOSTNAME" = "${NAMES[0]}" ]]; then
+        # 更新 secret 里的 ca 证书
+        renew_secret_ca_certs
+    fi
+
+    # 备份删除配置文件
+    rsync -avz /etc/kubernetes/{admin.conf,kubelet.conf,controller-manager.conf,scheduler.conf} /etc/kubernetes/conf.bak/
     rm -f /etc/kubernetes/{admin.conf,kubelet.conf,controller-manager.conf,scheduler.conf}
     rm -f /var/lib/kubelet/pki/*
     rsync -avz /etc/kubernetes/manifests/ /etc/kubernetes/manifests.bak/
     rm -rf /etc/kubernetes/manifests/
 
-    # 生成证书和配置文件
-    echo "kubeadm init phase certs all --config /etc/kubernetes/kubeadmcfg.yaml"
-    kubeadm init phase certs all --config /etc/kubernetes/kubeadmcfg.yaml
     sleep 2
     echo "kubeadm init phase kubelet-start --config /etc/kubernetes/kubeadmcfg.yaml"
     kubeadm init phase kubelet-start --config /etc/kubernetes/kubeadmcfg.yaml
@@ -137,6 +175,35 @@ function sync_certs () {
     done
 }
 
+function bootstrap_kubelet () {
+    bootstrap_token=$(kubeadm token list|grep bootstrappers|sed -n '1p'|awk '{print $1}')
+    if [ -z "$bootstrap_token" ]; then
+        bootstrap_token=$(kubeadm token create)
+    fi
+cat > /etc/kubernetes/bootstrap-kubelet.conf<<EOF
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: $base64_encoded_ca
+    server: https://${k8s_master_vip}:${control_plane_port}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: tls-bootstrap-token-user
+  name: tls-bootstrap-token-user@kubernetes
+current-context: tls-bootstrap-token-user@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: tls-bootstrap-token-user
+  user:
+    token: $bootstrap_token
+EOF
+
+    systemctl restart kubelet
+}
+
 function do_all() {
     cd $SH_DIR
     # 第一台master节点
@@ -144,11 +211,14 @@ function do_all() {
         check_running=$(ps aux|grep "/bin/bash $SH_DIR/$(basename $ME)"|grep -v grep)
         if [ -z "$check_running" ]; then  # 为空表示非远程执行脚本
             conf_type
+            yellow_echo "仍要更新证书？"
             user_verify_function
             case $type in
                 0)
                 renew_ca_certs
                 sync_certs
+                # 解决 kubelet 启动无法认证 
+                bootstrap_kubelet
                 ;;
                 1)
                 renew_all_certs
@@ -169,6 +239,8 @@ function do_all() {
         case $type in
             0)
             renew_ca_certs
+            # 解决 kubelet 启动无法认证 
+            bootstrap_kubelet
             ;;
             1)
             renew_all_certs
@@ -182,3 +254,4 @@ function do_all() {
 do_all
 # 执行完毕的时间
 green_echo "$HOSTNAME 本次执行花时:$SECONDS 秒"
+green_echo "请手动重启各 POD，先处理 master 相关，再处理其它 POD."
