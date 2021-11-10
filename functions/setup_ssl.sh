@@ -22,8 +22,9 @@ function install_cfssl() {
 }
 
 function generate_cert() {
-    # 生成有效期为10年CA证书
-    cd /etc/kubernetes
+    # 生成有效期为100年CA证书
+    [ ! -d /etc/kubernetes/certs_tmp ] && mkdir -p /etc/kubernetes/certs_tmp
+    cd /etc/kubernetes/certs_tmp
     cat > ca-config.json <<EOF
 {
   "signing": {
@@ -76,15 +77,35 @@ EOF
   }
 }
 EOF
+    cat > front-proxy-csr.json <<EOF
+{
+  "CN": "front-proxy-ca",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "CN": "front-proxy-ca"
+    }
+  ],
+  "ca": {
+    "expiry": "876000h"
+  }
+}
+EOF
 
-    cfssl gencert -initca ca-csr.json -config ca-config.json| cfssljson -bare ca - 
+    cfssl gencert -initca ca-csr.json | cfssljson -bare ca - 
+    cfssl gencert -initca front-proxy-csr.json | cfssljson -bare front-proxy-ca - 
     return_error_exit "cfssl生成自定义CA"
-    [ -d /etc/kubernetes/pki ] && mv /etc/kubernetes/pki /etc/kubernetes/pki.bak
+    [ -d /etc/kubernetes/pki ] && rsync -az /etc/kubernetes/pki/ /etc/kubernetes/pki-$(date +%F-%H-%M)/
     mkdir -p /etc/kubernetes/pki/etcd
     rsync -avz ca.pem /etc/kubernetes/pki/etcd/ca.crt
     rsync -avz ca-key.pem /etc/kubernetes/pki/etcd/ca.key
     rsync -avz ca.pem /etc/kubernetes/pki/ca.crt
     rsync -avz ca-key.pem /etc/kubernetes/pki/ca.key
+    rsync -avz front-proxy-ca.pem /etc/kubernetes/pki/front-proxy-ca.crt
+    rsync -avz front-proxy-ca-key.pem /etc/kubernetes/pki/front-proxy-ca.key
 
     echo '安装k8s证书 done! '>>${install_log}
 }
