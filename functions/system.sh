@@ -607,6 +607,7 @@ function install_docker () {
     # 安装 docker-ce 并启动
     yum -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
     [ -f /etc/docker/daemon.json ] && \mv /etc/docker/daemon.json-$(date +%F-%H-%M)
+    [ ! -d /etc/docker ] && mkdir /etc/docker
     cat > /etc/docker/daemon.json << EOF
 {
   "registry-mirrors": ["https://ciluuy3h.mirror.aliyuncs.com"],
