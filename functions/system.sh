@@ -606,6 +606,13 @@ EOF
 function install_docker () {
     # 安装 docker-ce 并启动
     yum -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
+    [ -f /etc/docker/daemon.json ] && \mv /etc/docker/daemon.json-$(date +%F-%H-%M)
+    cat > /etc/docker/daemon.json << EOF
+{
+  "registry-mirrors": ["https://ciluuy3h.mirror.aliyuncs.com"],
+  "exec-opts": ["native.cgroupdriver=systemd"]
+}
+EOF
     systemctl enable docker && systemctl restart docker
     docker version | tee /tmp/docker-version.log
     cat /tmp/docker-version.log | grep -w $DOCKERVERSION
