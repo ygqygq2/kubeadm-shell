@@ -96,7 +96,7 @@ EOF
     # 启动keepalived
     check_keepalived_container=$($cli_command ps|grep -w k8s-keepalived)
     if [ -z "$check_keepalived_container" ]; then
-        $cli_command --net=host --cap-add=NET_ADMIN \
+        $cli_command run --net=host --cap-add=NET_ADMIN \
             -e KEEPALIVED_INTERFACE=$network_card_name \
             -e KEEPALIVED_VIRTUAL_IPS="#PYTHON2BASH:['$k8s_master_vip']" \
             -e KEEPALIVED_UNICAST_PEERS="#PYTHON2BASH:['${HOST[0]}','${HOST[1]}','${HOST[2]}']" \

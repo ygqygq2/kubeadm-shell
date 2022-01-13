@@ -1,0 +1,6 @@
+projectKey=test
+serverUrl=http://sonar.mdb-fintech.com
+serverVersion=9.0.1.46107
+dashboardUrl=http://sonar.mdb-fintech.com/dashboard?id=test
+ceTaskId=AXsFyuBGZ8gJ70dXta9b
+ceTaskUrl=http://sonar.mdb-fintech.com/api/ce/task?id=AXsFyuBGZ8gJ70dXta9b
