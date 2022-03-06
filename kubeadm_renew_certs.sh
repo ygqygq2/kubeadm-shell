@@ -45,6 +45,7 @@ function check_certs_expire () {
     LEFT_DAYS=$(($(($END_TIME1-$NOW_TIME))/(60*60*24)))  # 到期时间减去目前时间再转化为天数
 
     if [ $LEFT_DAYS  -lt "$expire_days"  ]; then  # 当到期时间小于多少天
+        echo "$(date +%F) 证书 [$domain] 还有 [$LEFT_DAYS] 天过期"
         return 0
     else
         echo "$(date +%F) 证书 [$domain] 还有 [$LEFT_DAYS] 天过期"
@@ -60,6 +61,7 @@ function conf_type () {
     done
     if [ $result -eq 0 ]; then
         type=0  # 更新CA证书和其它所有证书
+        yellow_echo "更新CA证书和其它所有证书"
     else
         for cert in ${certs_list[@]}; do
             check_certs_expire $cert
@@ -70,6 +72,7 @@ function conf_type () {
         else
             type=1
         fi
+        yellow_echo "更新除CA所有证书"
     fi
 }
 
@@ -236,6 +239,8 @@ function do_all() {
         fi
     else
         conf_type
+        yellow_echo "仍要更新证书？"
+        user_verify_function
         case $type in
             0)
             renew_ca_certs
