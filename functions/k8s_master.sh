@@ -10,7 +10,6 @@
 
 function install_k8s() {
     # 安装K8S集群
-    ETCD_INITIAL_CLUSTER_ARRAY=""
     # 生成kubeadm 配置文件
     for i in "${!HOSTS[@]}"; do
         HOST=${HOSTS[$i]}
@@ -22,10 +21,6 @@ function install_k8s() {
             control_plane_port=8443
         fi
 
-        ETCD_INITIAL_CLUSTER_ARRAY=""
-        for j in ${!HOSTS[@]}; do
-            ETCD_INITIAL_CLUSTER_ARRAY="$ETCD_INITIAL_CLUSTER_ARRAY ${NAMES[$j]}=https://${HOSTS[$j]}:2380"
-        done
         cat > /tmp/${HOST}/kubeadmcfg.yaml << EOF
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
