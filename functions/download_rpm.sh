@@ -96,6 +96,8 @@ EOF
 
     # 安装 nerdctl
     cd $packages_dir
-    wget https://github.com/containerd/nerdctl/releases/download/v0.10.0/nerdctl-0.10.0-linux-amd64.tar.gz -O \
-        nerdctl-0.10.0-linux-amd64.tar.gz                                                                                                                                                   
+    nerdctl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/containerd/nerdctl/releases/latest" \
+        | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+    wget https://github.com/containerd/nerdctl/releases/download/${nerdctl_version}/nerdctl-${nerdctl_version/v/}-linux-amd64.tar.gz -O \
+        nerdctl-latest-linux-amd64.tar.gz
 }
