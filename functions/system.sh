@@ -17,6 +17,20 @@ function print_sys_info() {
     df -h
 }
 
+function initArch() {
+  ARCH=$(uname -m)
+  case $ARCH in
+    armv5*) ARCH="armv5";;
+    armv6*) ARCH="armv6";;
+    armv7*) ARCH="arm";;
+    aarch64) ARCH="arm64";;
+    x86) ARCH="386";;
+    x86_64) ARCH="amd64";;
+    i686) ARCH="386";;
+    i386) ARCH="386";;
+  esac
+}
+
 function set_timezone() {
     blue_echo "Setting timezone..."
     rm -f /etc/localtime
@@ -236,6 +250,7 @@ EOF
 
 function init_install() {
     print_sys_info
+    initArch
     set_timezone
     disable_selinux
     check_hosts
@@ -628,7 +643,14 @@ function install_containerd () {
     # 安装 containerd
     yum -y install containerd.io
     # 安装 nerdctl
-    tar -zxvf $packages_dir/nerdctl-0.10.0-linux-amd64.tar.gz -C /usr/local/bin/
+    cd $packages_dir
+    if [ ! -f nerdctl-latest-linux-amd64.tar.gz ]; then
+        nerdctl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/containerd/nerdctl/releases/latest" \
+            | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+        wget https://github.com/containerd/nerdctl/releases/download/${nerdctl_version}/nerdctl-${nerdctl_version/v/}-linux-${ARCH}.tar.gz -O \
+            nerdctl-latest-linux-${ARCH}.tar.gz || echo '下载 nerdctl 失败! '>>${install_log} 
+    fi
+    tar -zxvf $packages_dir/nerdctl-latest-linux-${ARCH}.tar.gz -C /usr/local/bin/
     cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
 overlay
 br_netfilter
