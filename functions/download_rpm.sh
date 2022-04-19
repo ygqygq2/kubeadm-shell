@@ -40,19 +40,34 @@ function download_rpm () {
             docker-ce-cli-$DOCKERVERSION \
             containerd.io
         curl https://mirrors.aliyun.com/docker-ce/linux/centos/gpg -o $gpg_dir/Docker.gpg
+
+        # 下载 nerdctl
+        cd $packages_dir
+        nerdctl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/containerd/nerdctl/releases/latest" \
+            | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+        wget https://github.com/containerd/nerdctl/releases/download/${nerdctl_version}/nerdctl-${nerdctl_version/v/}-linux-amd64.tar.gz -O \
+            nerdctl-latest-linux-amd64.tar.gz
         ;;
         ciro)
-			# ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2
+            # ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2
             OS="CentOS_7"
             local tmp_VERSION=${KUBEVERSION#*v}
             local VERSION=${tmp_VERSION%.*}
             curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo \
-			  https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
+	        https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
             curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
-              https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+                https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
             sed -i 's@gpgcheck=1@gpgcheck=0@g' /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
-			yum install --downloadonly --downloaddir=$packages_dir \
+	    yum install --downloadonly --downloaddir=$packages_dir \
                 cri-o
+            # 下载 nerdctl
+            cd $packages_dir
+            if [ ! -f crictl-latest-linux-amd64.tar.gz ]; then
+                crictl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" \
+                    | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+                wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${crictl_version}/crictl-${crictl_version}-linux-${ARCH}.tar.gz -O \
+                    crictl-latest-linux-${ARCH}.tar.gz || echo '下载 crictl 失败! '>>${install_log}
+            fi
         ;;
         *)
             red_echo "不支持的 Container Runtime 类型"
@@ -93,11 +108,4 @@ EOF
         kubelet-${KUBEVERSION/v/} \
         kubeadm-${KUBEVERSION/v/} \
         kubectl-${KUBEVERSION/v/}
-
-    # 安装 nerdctl
-    cd $packages_dir
-    nerdctl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/containerd/nerdctl/releases/latest" \
-        | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
-    wget https://github.com/containerd/nerdctl/releases/download/${nerdctl_version}/nerdctl-${nerdctl_version/v/}-linux-amd64.tar.gz -O \
-        nerdctl-latest-linux-amd64.tar.gz
 }

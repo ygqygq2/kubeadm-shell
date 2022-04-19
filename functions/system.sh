@@ -177,15 +177,14 @@ EOF
             ready_docker_yum
         ;;
         crio)
-	        # ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2
-	        OS="CentOS_7"
-	        local tmp_VERSION=${KUBEVERSION#*v}
-	        local VERSION=${tmp_VERSION%.*}
-	        curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo \                                                                                                                     
-	          https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
-	        curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
-	          https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
-	        sed -i 's@gpgcheck=1@gpgcheck=0@g' /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+	    # ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2
+	    OS="CentOS_7"
+	    local tmp_VERSION=${KUBEVERSION#*v}
+	    local VERSION=${tmp_VERSION%.*}
+	    curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo \                                                                                                                     	    https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
+	    curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
+	        https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+	    sed -i 's@gpgcheck=1@gpgcheck=0@g' /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
         ;;
         *)
             red_echo "不支持的 Container Runtime 类型"
@@ -639,6 +638,18 @@ EOF
     echo '安装docker ce done! '>>${install_log}
 }
 
+function install_crictl () {
+    # 安装 nerdctl
+    cd $packages_dir
+    if [ ! -f crictl-latest-linux-amd64.tar.gz ]; then
+        crictl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" \
+            | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+        wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${crictl_version}/crictl-${crictl_version}-linux-${ARCH}.tar.gz -O \
+            crictl-latest-linux-${ARCH}.tar.gz || echo '下载 crictl 失败! '>>${install_log}
+    fi
+    tar -zxvf $packages_dir/crictl-latest-linux-${ARCH}.tar.gz -C /usr/local/bin/
+}
+
 function install_containerd () {
     # 安装 containerd
     yum -y install containerd.io
@@ -666,6 +677,8 @@ EOF
     #sed -i "s#https://registry-1.docker.io#https://registry.cn-hangzhou.aliyuncs.com#g" /etc/containerd/config.toml 
     
     systemctl restart containerd
+
+    install_crictl
     cat > /etc/crictl.yaml << EOF
 runtime-endpoint: unix:///var/run/containerd/containerd.sock
 image-endpoint: unix:///var/run/containerd/containerd.sock
@@ -687,6 +700,7 @@ EOF
     modprobe br_netfilter
 
     yum install -y cri-o    
+    install_crictl
     cat > /etc/crictl.yaml << EOF
 runtime-endpoint: unix:///var/run/crio/crio.sock
 image-endpoint: unix:///var/run/crio/crio.sock
