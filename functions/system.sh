@@ -714,6 +714,7 @@ EOF
     tar Cxzvf /opt/cni/bin cni-plugins-linux-${ARCH}-latest.tgz
 
     systemctl restart containerd
+    systemctl enable containerd
 
     install_crictl
     cat > /etc/crictl.yaml << EOF

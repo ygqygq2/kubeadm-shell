@@ -30,7 +30,7 @@ function download_rpm () {
         lvm2
 
     # 添加阿里云Docker源
-    yum -y install yum-utils
+    yum -y install yum-utils wget
 
     case $INSTALL_CR in
         containerd)
