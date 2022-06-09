@@ -30,6 +30,7 @@ PARAMETERS=$*
 packages_dir=$SH_DIR/packages
 images_dir=$SH_DIR/images
 gpg_dir=$packages_dir/gpg
+[ ! -d $packages_dir ] && mkdir $packages_dir
 
 . $SH_DIR/config.sh
 . $SH_DIR/functions/base.sh

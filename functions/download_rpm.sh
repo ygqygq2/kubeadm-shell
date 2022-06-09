@@ -33,20 +33,46 @@ function download_rpm () {
     yum -y install yum-utils
 
     case $INSTALL_CR in
-        docker|containerd)
-            yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+        containerd)
+        yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
         yum install --downloadonly --downloaddir=$packages_dir \
-            docker-ce-$DOCKERVERSION \
-            docker-ce-cli-$DOCKERVERSION \
             containerd.io
         curl https://mirrors.aliyun.com/docker-ce/linux/centos/gpg -o $gpg_dir/Docker.gpg
+
+        # 下载 cni-plugins
+        cd $packages_dir
+        cni_plugins_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/containernetworking/plugins/releases/latest" \
+            | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+        wget https://github.com/containernetworking/plugins/releases/download/${cni_plugins_version}/cni-plugins-linux-${ARCH}-${cni_plugins_version}.tgz -O \
+            cni-plugins-linux-${ARCH}-latest.tgz || echo '下载 cni-plugins 失败! '>>${install_log}
 
         # 下载 nerdctl
         cd $packages_dir
         nerdctl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/containerd/nerdctl/releases/latest" \
             | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
         wget https://github.com/containerd/nerdctl/releases/download/${nerdctl_version}/nerdctl-${nerdctl_version/v/}-linux-amd64.tar.gz -O \
-            nerdctl-latest-linux-amd64.tar.gz
+            nerdctl-latest-linux-${ARCH}.tar.gz || echo '下载 nerdctl 失败! '>>${install_log}
+        ;;
+        docker)
+        yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+        yum install --downloadonly --downloaddir=$packages_dir \
+            docker-ce-$DOCKERVERSION \
+            docker-ce-cli-$DOCKERVERSION \
+        curl https://mirrors.aliyun.com/docker-ce/linux/centos/gpg -o $gpg_dir/Docker.gpg
+        # 下载 cri-dockerd
+        cd $packages_dir
+        if [ ! -f cri-dockerd-latest.amd64.tgz ]; then
+            cri_dockerd_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/Mirantis/cri-dockerd/releases/latest" \
+                | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+            wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${cri_dockerd_version}/cri-dockerd-${cri_dockerd_version/v/}.${ARCH}.tgz -O \
+                cri-dockerd-latest.${ARCH}.tgz || echo '下载 cri-dockerd 失败! '>>${install_log}
+        fi        
+        [ ! -d systemd ] && mkdir systemd
+        cd systemd
+        wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service -O \
+            cri-docker.service
+        wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket -O \
+            cri-docker.socket
         ;;
         ciro)
             # ref https://kubernetes.io/docs/setup/production-environment/container-runtimes/#tab-cri-cri-o-installation-2

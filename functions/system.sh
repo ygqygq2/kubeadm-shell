@@ -636,12 +636,39 @@ EOF
         user_verify_function
     fi
     echo '安装docker ce done! '>>${install_log}
+
+    # kubernetes 1.24 移除对 docker ce 的支持，增加一层 cri-docker
+    # 安装 cri-docker 并启动
+
+    cd $packages_dir
+    if [ ! -f cri-dockerd-latest.${ARCH}.tgz ]; then
+        cri_dockerd_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/Mirantis/cri-dockerd/releases/latest" \
+            | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+        wget https://github.com/Mirantis/cri-dockerd/releases/download/${cri_dockerd_version}/cri-dockerd-${cri_dockerd_version/v/}.${ARCH}.tgz -O \
+            cri-dockerd-latest.${ARCH}.tgz || echo '下载 cri-dockerd 失败! '>>${install_log}
+    fi
+    tar -zxvf $packages_dir/cri-dockerd-latest.${ARCH}.tgz -C /tmp/
+    \mv /tmp/cri-dockerd/cri-dockerd /usr/local/bin/
+    
+    [ ! -d systemd ] && mkdir systemd
+    cd systemd
+    [ ! -f cri-docker.service ] && wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service -O \
+        cri-docker.service echo '下载 cri-docker.service 失败! '>>${install_log}
+    [ ! -f cri-docker.socket ] && wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket -O \
+        cri-docker.socket || echo '下载 cri-docker.socket 失败! '>>${install_log}
+    cp * /etc/systemd/system
+    sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+    systemctl daemon-reload
+    systemctl enable cri-docker.service
+    systemctl enable --now cri-docker.socket    
+    systemctl start cri-docker
+    echo '安装cri-dockerd done! '>>${install_log}
 }
 
 function install_crictl () {
     # 安装 nerdctl
     cd $packages_dir
-    if [ ! -f crictl-latest-linux-amd64.tar.gz ]; then
+    if [ ! -f crictl-latest-linux-${ARCH}.tar.gz ]; then
         crictl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" \
             | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
         wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${crictl_version}/crictl-${crictl_version}-linux-${ARCH}.tar.gz -O \
@@ -655,7 +682,7 @@ function install_containerd () {
     yum -y install containerd.io
     # 安装 nerdctl
     cd $packages_dir
-    if [ ! -f nerdctl-latest-linux-amd64.tar.gz ]; then
+    if [ ! -f nerdctl-latest-linux-${ARCH}.tar.gz ]; then
         nerdctl_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/containerd/nerdctl/releases/latest" \
             | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
         wget https://github.com/containerd/nerdctl/releases/download/${nerdctl_version}/nerdctl-${nerdctl_version/v/}-linux-${ARCH}.tar.gz -O \
@@ -673,9 +700,19 @@ EOF
     mkdir -p /etc/containerd
     containerd config default | sudo tee /etc/containerd/config.toml
     sed -i "s#k8s.gcr.io#${IMAGE_REPOSITORY}#g" /etc/containerd/config.toml
+    sed -i '/registry.mirrors/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]\n\ \ \ \ \ \ \ \ \ \ endpoint = ["https://ciluuy3h.mirror.aliyuncs.com", "https://registry-1.docker.io"]' /etc/containerd/config.toml
     #sed -i '/containerd.runtimes.runc.options/a\ \ \ \ \ \ \ \ \ \ \ \ SystemdCgroup = true' /etc/containerd/config.toml
     #sed -i "s#https://registry-1.docker.io#https://registry.cn-hangzhou.aliyuncs.com#g" /etc/containerd/config.toml 
     
+    cd $packages_dir
+    if [ ! -f cni-plugins-linux-${ARCH}-latest.tgz ]; then
+        cni_plugins_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/containernetworking/plugins/releases/latest" \
+            | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+        wget https://github.com/containernetworking/plugins/releases/download/${cni_plugins_version}/cni-plugins-linux-${ARCH}-${cni_plugins_version}.tgz -O \
+            cni-plugins-linux-${ARCH}-latest.tgz || echo '下载 cni-plugins 失败! '>>${install_log}
+    fi
+    tar Cxzvf /opt/cni/bin cni-plugins-linux-${ARCH}-latest.tgz
+
     systemctl restart containerd
 
     install_crictl
