@@ -30,13 +30,12 @@ EOF
         ;;
     esac
 
-    # 拉取k8s镜像
-    kubeadm config images list --config /tmp/kubeadmcfg.yaml | awk '{print "'$cli_command' pull " $0}' | sh
-    # 导出镜像
-    kubeadm config images list --config /tmp/kubeadmcfg.yaml | awk -F':|/' '{print "'$cli_command' save -o '$IMAGES_DIR'/" $(NF-1) ".tar " $0}' | sh
-
-    # 拉取额外的docker images
-    cat $SH_DIR/extra_images.txt | awk '{print "'$cli_command' pull " $0}' | sh
-    # 导出镜像
-    cat $SH_DIR/extra_images.txt | awk -F':|/' '{print "'$cli_command' save -o '$IMAGES_DIR'/" $(NF-1) ".tar " $0}' | sh
+    local images=$(kubeadm config images list --config /tmp/kubeadmcfg.yaml; cat $SH_DIR/extra_images.txt)
+    for image in $images; do
+        image_file="$(echo $image| awk -F':|/' '{print $(NF-1)}').tar"
+        # 拉取k8s镜像
+        $cli_command pull $image
+        # 导出镜像
+        $cli_command save -o $image_file $image
+    done
 }

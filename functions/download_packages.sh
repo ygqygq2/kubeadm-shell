@@ -8,12 +8,13 @@
 # @FilePath    : /kubeadm-shell/functions/download_packages.sh
 ##############################################################
 
+function Apt_Download() {
+    local package="$1"
+    apt download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances $package | grep "^\w" | sort -u)
+}
+
 function Download_Packages() {
     if [ "$PM" == "yum" ]; then
-        # 因为要使用docker 导出镜像，安装 docker ce
-        yum -y install docker-ce-$DOCKERVERSION
-        systemctl start docker
-
         # 拉取镜像时需要kubeadm
         yum -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+-$KUBERNETES_CNI_VERSION} \
             kubelet-${KUBEVERSION/v/} \
@@ -48,7 +49,7 @@ function Download_Packages() {
         curl http://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg -o $GPG_DIR/Aliyun-kubernetes-rpm-package-key.gpg
     elif [ "$PM" == "apt" ]; then
         chown _apt:root $PACKAGES_DIR
-        apt -y install dpkg-dev
+        apt -y install dpkg-dev apt-rdepends
         local packages="apt-transport-https \
         bash \
         chrony \
@@ -64,19 +65,25 @@ function Download_Packages() {
         vim \
         wget"
         cd $PACKAGES_DIR
-        apt download $(apt-rdepends "$packages" | grep -v "^ " | sed 's/debconf-2.0/debconf/g')
+        for package in $packages; do
+            Apt_Download $package
+            [ $? -ne 0 ] && Red_Echo "Download $package failed"
+        done
 
         apt -y install kubeadm=${KUBEVERSION/v/}-00
 
-        apt download $(apt-rdepends kubernetes-cni \
+        Apt_Download "kubernetes-cni \
             kubelet \
             kubeadm \
-            kubectl | grep -v "^ " | sed 's/debconf-2.0/debconf/g')
-
-        apt download kubernetes-cni${KUBERNETES_CNI_VERSION:+=$KUBERNETES_CNI_VERSION"-00"} \
+            kubectl"
+        apt download "kubernetes-cni${KUBERNETES_CNI_VERSION:+=$KUBERNETES_CNI_VERSION'-00'} \
             kubelet=${KUBEVERSION/v/}-00 \
             kubeadm=${KUBEVERSION/v/}-00 \
-            kubectl=${KUBEVERSION/v/}-00
+            kubectl=${KUBEVERSION/v/}-00"
+        # 删除多余的包
+        ls kubeadm_* | grep -v ${KUBEVERSION/v/} | xargs rm -f
+        ls kubectl_* | grep -v ${KUBEVERSION/v/} | xargs rm -f
+        ls kubelet_* | grep -v ${KUBEVERSION/v/} | xargs rm -f
     else
         Red_Echo "当前系统不支持离线安装"
         return 1
@@ -85,10 +92,16 @@ function Download_Packages() {
     case $INSTALL_CR in
     containerd)
         if [ "$PM" == "yum" ]; then
+            yum -y install containerd.io
+            systemctl start containerd
+
             yum install --downloadonly --downloaddir=$PACKAGES_DIR \
                 containerd.io
             curl https://mirrors.aliyun.com/docker-ce/linux/centos/gpg -o $GPG_DIR/Docker.gpg
         elif [ "$PM" == "apt" ]; then
+            apt -y install containerd.io
+            systemctl start containerd
+
             apt download $(apt-rdepends containerd.io | grep -v "^ " | sed 's/debconf-2.0/debconf/g')
         fi
 
@@ -105,15 +118,24 @@ function Download_Packages() {
             grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
         wget https://github.com/containerd/nerdctl/releases/download/${nerdctl_version}/nerdctl-${nerdctl_version/v/}-linux-amd64.tar.gz -O \
             nerdctl-latest-linux-${ARCH}.tar.gz || echo '下载 nerdctl 失败! ' >>${install_log}
+        tar -zxvf $PACKAGES_DIR/nerdctl-latest-linux-${ARCH}.tar.gz -C /usr/local/bin/
         ;;
     docker)
         if [ "$PM" == "yum" ]; then
+            # 因为要使用docker 导出镜像，安装 docker ce
+            yum -y install docker-ce-$DOCKERVERSION
+            systemctl start docker
+
             yum install --downloadonly --downloaddir=$PACKAGES_DIR \
                 docker-ce-$DOCKERVERSION \
                 docker-ce-cli-$DOCKERVERSION \
                 curl https://mirrors.aliyun.com/docker-ce/linux/centos/gpg -o $GPG_DIR/Docker.gpg
         elif [ "$PM" == "apt" ]; then
-            apt download $(apt-rdepends docker-ce=${DOCKERVERSION}-00 docker-ce-cli=${DOCKERVERSION}-00 | grep -v "^ " | sed 's/debconf-2.0/debconf/g')
+            apt -y install docker-ce=${DOCKERVERSION}-00 docker-ce-cli=${DOCKERVERSION}-00
+            systemctl start docker
+
+            apt download $(apt-rdepends docker-ce docker-ce-cli | grep -v "^ " | sed 's/debconf-2.0/debconf/g')
+            apt download docker-ce=${DOCKERVERSION}-00 docker-ce-cli=${DOCKERVERSION}-00
         fi
 
         # 下载 cri-dockerd

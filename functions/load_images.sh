@@ -23,5 +23,9 @@ function Load_Images() {
         ;;
     esac
 
-    cd $IMAGES_DIR && ls *.tar >/dev/null 2>&1 && ls *.tar | awk '{print "'$cli_command' load -i " $0}' | sh
+    cd $IMAGES_DIR
+    local tar_files=$(ls *.tar)
+    for tar_file in ${tar_files[@]}; do
+        $cli_command load -i "$tar_file"
+    done
 }

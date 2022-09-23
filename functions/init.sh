@@ -1001,6 +1001,7 @@ Check_Mirror() {
         elif [ "$PM" = "apt" ]; then
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
+            apt-get upgrade
             apt-get install -y curl
         fi
     fi
