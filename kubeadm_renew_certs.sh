@@ -19,8 +19,8 @@ fi
 ##############################################################
 
 #获取脚本所存放目录
-cd `dirname $0`
-SH_DIR=`pwd`
+cd $(dirname $0)
+SH_DIR=$(pwd)
 ME=$0
 PARAMETERS=$*
 
@@ -28,23 +28,22 @@ PARAMETERS=$*
 . $SH_DIR/functions/base.sh
 . $SH_DIR/functions/setup_ssl.sh
 
-
-function check_certs_expire () {
+function Check_Certs_Expire() {
     # 检测域名或者证书过期剩余天数
     local domain=$1
     if [ -f "$domain" ]; then
-        END_TIME=$(openssl x509 -noout -dates -in $domain |grep 'After'| awk -F '=' '{print $2}'| awk -F ' +' '{print $1,$2,$4 }' )
+        END_TIME=$(openssl x509 -noout -dates -in $domain | grep 'After' | awk -F '=' '{print $2}' | awk -F ' +' '{print $1,$2,$4 }')
     else
-        END_TIME=$(echo | openssl s_client -servername $domain  -connect $domain:443 2>/dev/null \
-          | openssl x509 -noout -dates |grep 'After'| awk -F '=' '{print $2}'| awk -F ' +' '{print $1,$2,$4 }' )
+        END_TIME=$(echo | openssl s_client -servername $domain -connect $domain:443 2>/dev/null |
+            openssl x509 -noout -dates | grep 'After' | awk -F '=' '{print $2}' | awk -F ' +' '{print $1,$2,$4 }')
     fi
     # 使用openssl获取域名的证书情况，然后获取其中的到期时间
     END_TIME1=$(date +%s -d "$END_TIME")  # 将日期转化为时间戳
-    NOW_TIME=$(date +%s -d "$(date +%F)")  # 将目前的日期也转化为时间戳
+    NOW_TIME=$(date +%s -d "$(date +%F)") # 将目前的日期也转化为时间戳
 
-    LEFT_DAYS=$(($(($END_TIME1-$NOW_TIME))/(60*60*24)))  # 到期时间减去目前时间再转化为天数
+    LEFT_DAYS=$(($(($END_TIME1 - $NOW_TIME)) / (60 * 60 * 24))) # 到期时间减去目前时间再转化为天数
 
-    if [ $LEFT_DAYS  -lt "$expire_days"  ]; then  # 当到期时间小于多少天
+    if [ $LEFT_DAYS -lt "$expire_days" ]; then # 当到期时间小于多少天
         echo "$(date +%F) 证书 [$domain] 还有 [$LEFT_DAYS] 天过期"
         return 0
     else
@@ -53,32 +52,32 @@ function check_certs_expire () {
     fi
 }
 
-function conf_type () {
+function Conf_Type() {
     result=1
     for cert in ${ca_certs_list[@]}; do
-        check_certs_expire $cert
+        Check_Certs_Expire $cert
         result=$(($result * $?))
     done
     if [ $result -eq 0 ]; then
-        type=0  # 更新CA证书和其它所有证书
-        yellow_echo "更新CA证书和其它所有证书"
+        type=0 # 更新CA证书和其它所有证书
+        Yellow_Echo "更新CA证书和其它所有证书"
     else
         for cert in ${certs_list[@]}; do
-            check_certs_expire $cert
+            Check_Certs_Expire $cert
             result=$(($result * $?))
         done
         if [ $result -eq 0 ]; then
-            type=1  # 更新除CA所有证书
+            type=1 # 更新除CA所有证书
         else
             type=1
         fi
-        yellow_echo "更新除CA所有证书"
+        Yellow_Echo "更新除CA所有证书"
     fi
 }
 
-function renew_all_certs () {
+function Renew_All_Certs() {
     # 续期除CA以外其它证书
-    yellow_echo "主机名：$HOSTNAME"
+    Yellow_Echo "主机名：$HOSTNAME"
     kubeadm certs check-expiration
     kubeadm certs renew all --config /etc/kubernetes/kubeadmcfg.yaml
     rm -f /var/lib/kubelet/pki/*
@@ -89,27 +88,27 @@ function renew_all_certs () {
     rsync -avz /etc/kubernetes/manifests.bak/ /etc/kubernetes/manifests/
 }
 
-function renew_secret_ca_certs () {
+function Renew_Secret_Ca_Certs() {
     base64_encoded_ca="$(base64 -w0 /etc/kubernetes/pki/ca.crt)"
-    
+
     for namespace in $(kubectl get ns --no-headers | awk '{print $1}'); do
         for token in $(kubectl get secrets --namespace "$namespace" --field-selector type=kubernetes.io/service-account-token -o name); do
-            kubectl get $token --namespace "$namespace" -o yaml | \
-              /bin/sed "s/\(ca.crt:\).*/\1 ${base64_encoded_ca}/" | \
-              kubectl apply -f -
+            kubectl get $token --namespace "$namespace" -o yaml |
+                /bin/sed "s/\(ca.crt:\).*/\1 ${base64_encoded_ca}/" |
+                kubectl apply -f -
         done
     done
-  
-    kubectl get cm/cluster-info --namespace kube-public -o yaml | \
-      /bin/sed "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" | \
-      kubectl apply -f -
-    
-  #  /bin/sed -i "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" kubelet.conf
-  #  /bin/sed -i "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" scheduler.conf
+
+    kubectl get cm/cluster-info --namespace kube-public -o yaml |
+        /bin/sed "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" |
+        kubectl apply -f -
+
+    #  /bin/sed -i "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" kubelet.conf
+    #  /bin/sed -i "s/\(certificate-authority-data:\).*/\1 ${base64_encoded_ca}/" scheduler.conf
 }
 
-function renew_ca_certs () {
-    yellow_echo "主机名：$HOSTNAME"
+function Renew_Ca_Certs() {
+    Yellow_Echo "主机名：$HOSTNAME"
     # 备份
     mkdir -p /etc/kubernetes/conf.bak
     rsync -avz /etc/kubernetes/pki/ /etc/kubernetes/pki.bak/
@@ -124,9 +123,9 @@ function renew_ca_certs () {
     if [[ "$HOSTNAME" = "${NAMES[0]}" ]]; then
         if [ "$GENERATE_CA" != "false" ]; then
             # 安装证书工具
-            install_cfssl
+            Install_Cfssl
             # 生成ca证书
-            generate_cert
+            Generate_Cert
         fi
     fi
 
@@ -136,7 +135,7 @@ function renew_ca_certs () {
 
     if [[ "$HOSTNAME" = "${NAMES[0]}" ]]; then
         # 更新 secret 里的 ca 证书
-        renew_secret_ca_certs
+        Renew_Secret_Ca_Certs
     fi
 
     # 备份删除配置文件
@@ -162,9 +161,9 @@ function renew_ca_certs () {
     rsync -avz /etc/kubernetes/manifests.bak/ /etc/kubernetes/manifests/
 }
 
-function sync_certs () {
+function Sync_Certs() {
     # 将相关证书文件传至其他master节点
-    for ((i=$((${#HOSTS[@]}-1)); i>0; i--)); do
+    for ((i = $((${#HOSTS[@]} - 1)); i > 0; i--)); do
         $ssh_command root@${HOSTS[$i]} "mkdir -p /etc/kubernetes/pki/etcd"
         rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/ca.crt root@${HOSTS[$i]}:/etc/kubernetes/pki/ca.crt
         rsync -avz -e "${ssh_command}" /etc/kubernetes/pki/ca.key root@${HOSTS[$i]}:/etc/kubernetes/pki/ca.key
@@ -178,12 +177,12 @@ function sync_certs () {
     done
 }
 
-function bootstrap_kubelet () {
-    bootstrap_token=$(kubeadm token list|grep bootstrappers|sed -n '1p'|awk '{print $1}')
+function Bootstrap_Kubelet() {
+    bootstrap_token=$(kubeadm token list | grep bootstrappers | sed -n '1p' | awk '{print $1}')
     if [ -z "$bootstrap_token" ]; then
         bootstrap_token=$(kubeadm token create)
     fi
-cat > /etc/kubernetes/bootstrap-kubelet.conf<<EOF
+    cat >/etc/kubernetes/bootstrap-kubelet.conf <<EOF
 apiVersion: v1
 clusters:
 - cluster:
@@ -207,28 +206,28 @@ EOF
     systemctl restart kubelet
 }
 
-function do_all() {
+function Do_All() {
     cd $SH_DIR
     # 第一台master节点
     if [[ "$HOSTNAME" = "${NAMES[0]}" ]]; then
-        check_running=$(ps aux|grep "/bin/bash $SH_DIR/$(basename $ME)"|grep -v grep)
-        if [ -z "$check_running" ]; then  # 为空表示非远程执行脚本
-            conf_type
-            yellow_echo "仍要更新证书？"
-            user_verify_function
+        check_running=$(ps aux | grep "/bin/bash $SH_DIR/$(basename $ME)" | grep -v grep)
+        if [ -z "$check_running" ]; then # 为空表示非远程执行脚本
+            Conf_Type
+            Yellow_Echo "仍要更新证书？"
+            User_Verify
             case $type in
-                0)
-                renew_ca_certs
-                sync_certs
-                # 解决 kubelet 启动无法认证 
-                bootstrap_kubelet
+            0)
+                Renew_Ca_Certs
+                Sync_Certs
+                # 解决 kubelet 启动无法认证
+                Bootstrap_Kubelet
                 ;;
-                1)
-                renew_all_certs
+            1)
+                Renew_All_Certs
                 ;;
-                *)
+            *) ;;
             esac
-            for ((i=1; i<=$((${#HOSTS[@]}-1)); i++)); do
+            for ((i = 1; i <= $((${#HOSTS[@]} - 1)); i++)); do
                 # 将脚本分发至master节点
                 cd $SH_DIR
                 $ssh_command root@${HOSTS[$i]} "mkdir -p $SH_DIR"
@@ -238,25 +237,24 @@ function do_all() {
             done
         fi
     else
-        conf_type
-        yellow_echo "仍要更新证书？"
-        user_verify_function
+        Conf_Type
+        Yellow_Echo "仍要更新证书？"
+        User_Verify
         case $type in
-            0)
-            renew_ca_certs
-            # 解决 kubelet 启动无法认证 
-            bootstrap_kubelet
+        0)
+            Renew_Ca_Certs
+            # 解决 kubelet 启动无法认证
+            Bootstrap_Kubelet
             ;;
-            1)
-            renew_all_certs
+        1)
+            Renew_All_Certs
             ;;
-            *)
+        *) ;;
         esac
     fi
 }
 
-
-do_all
+Do_All
 # 执行完毕的时间
-green_echo "$HOSTNAME 本次执行花时:$SECONDS 秒"
-green_echo "请手动重启各 POD，先处理 master 相关，再处理其它 POD."
+Green_Echo "$HOSTNAME 本次执行花时:$SECONDS 秒"
+Green_Echo "请手动重启各 POD，先处理 master 相关，再处理其它 POD."

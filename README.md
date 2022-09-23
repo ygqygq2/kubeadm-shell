@@ -6,16 +6,17 @@
 - [x] 新建多master节点（至少3台，奇数）的高可用kubernetes集群；
 - [x] 新建单master节点的kubernetes；
 - [x] 添加work节点；
-- [x] 支持离线安装，前提是使用CentOS7的最小化安装准备安装包；
+- [x] 支持离线安装，前提是在最小化安装的系统下执行`/bin/bash k8s_offline_package.sh`准备安装包；
 
 >离线安装说明
->1. 离线安装已支持 docker 安装 kubernetes； 
+>1. 离线安装已支持 docker 安装 kubernetes；
 >2. 离线安装支持 containerd 安装 kubernetes；
 >3. 因 crio 没有镜像管理功能，不支持离线安装；
 
 
 # 2. 使用说明
-系统：CentOS7
+* 系统：CentOS/Ubuntu（要求支持安装Kubernetes）
+* 运行：请在 root 用户下使用`/bin/bash`运行
 
 >**重要**
 >使用时请将整个仓库文件一起打包上传至服务器。

@@ -8,9 +8,9 @@
 # Description:
 ##############################################################
 
-function add_node() {
-    green_echo "添加kubernetes节点[$HOSTNAME]"
-    user_verify_function
+function Add_Node() {
+    Green_Echo "添加kubernetes节点[$HOSTNAME]"
+    User_Verify
     # 配置kubelet
     rsync -avz -e "${ssh_command}" root@${k8s_join_ip}:/etc/hosts /etc/hosts
     rsync -avz -e "${ssh_command}" root@${k8s_join_ip}:/etc/sysconfig/kubelet /etc/sysconfig/kubelet
@@ -20,5 +20,5 @@ function add_node() {
     # 获取加入k8s节点命令
     k8s_add_node_command=$($ssh_command root@$k8s_join_ip "kubeadm token create --print-join-command")
     $k8s_add_node_command
-    echo '添加k8s node done! '>>${install_log}
+    echo '添加k8s node done! ' >>${install_log}
 }

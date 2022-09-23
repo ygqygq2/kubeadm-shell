@@ -19,26 +19,27 @@ fi
 ##############################################################
 
 #获取脚本所存放目录
-cd `dirname $0`
-SH_DIR=`pwd`
+cd $(dirname $0)
+SH_DIR=$(pwd)
 ME=$0
 PARAMETERS=$*
-packages_dir=$SH_DIR/packages
-images_dir=$SH_DIR/images
-gpg_dir=$packages_dir/gpg
+PACKAGES_DIR=$SH_DIR/packages
+IMAGES_DIR=$SH_DIR/images
+GPG_DIR=$PACKAGES_DIR/gpg
 
-[ ! -d "$gpg_dir" ] && mkdir -p $gpg_dir
-
+[ ! -d "$GPG_DIR" ] && mkdir -p "$GPG_DIR"
 
 . $SH_DIR/config.sh
 . $SH_DIR/functions/base.sh
-. $SH_DIR/functions/download_rpm.sh
+. $SH_DIR/functions/init.sh
+. $SH_DIR/functions/download_packages.sh
 . $SH_DIR/functions/download_images.sh
 
-
-download_rpm
-docker_pull_images
-
+Get_Dist_Name
+Kill_PM
+Init_Install
+Download_Packages
+Docker_Pull_Images
 
 # 执行完毕的时间
-green_echo "$HOSTNAME 本次执行花时:$SECONDS 秒"
+Green_Echo "$HOSTNAME 本次执行花时:$SECONDS 秒"
