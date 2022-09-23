@@ -9,19 +9,19 @@
 ##############################################################
 
 function Install_K8s() {
-  # 安装K8S集群
-  # 生成kubeadm 配置文件
-  for i in "${!HOSTS[@]}"; do
-    HOST=${HOSTS[$i]}
-    NAME=${NAMES[$i]}
-    mkdir -p /tmp/${HOST}
-    if [ $INSTALL_SLB != "true" ]; then
-      control_plane_port=6443
-    else
-      control_plane_port=8443
-    fi
+    # 安装K8S集群
+    # 生成kubeadm 配置文件
+    for i in "${!HOSTS[@]}"; do
+        HOST=${HOSTS[$i]}
+        NAME=${NAMES[$i]}
+        mkdir -p /tmp/${HOST}
+        if [ $INSTALL_SLB != "true" ]; then
+            control_plane_port=6443
+        else
+            control_plane_port=8443
+        fi
 
-    cat >/tmp/${HOST}/kubeadmcfg.yaml <<EOF
+        cat >/tmp/${HOST}/kubeadmcfg.yaml <<EOF
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: "${KUBE_PROXY_MODE}"
@@ -55,42 +55,42 @@ networking:
   podSubnet: ${podSubnet}
 
 EOF
-    echo '生成kubeadm配置 done! ' >>${install_log}
+        echo '生成kubeadm配置 done! ' >>${install_log}
 
-    # 同步配置文件
-    $ssh_command root@${HOST} "mkdir -p /etc/kubernetes"
-    rsync -avz -e "${ssh_command}" /tmp/${HOST}/kubeadmcfg.yaml root@${HOST}:/etc/kubernetes/
+        # 同步配置文件
+        $ssh_command root@${HOST} "mkdir -p /etc/kubernetes"
+        rsync -avz -e "${ssh_command}" /tmp/${HOST}/kubeadmcfg.yaml root@${HOST}:/etc/kubernetes/
 
-    # 设置kubelet启动额外参数
-    #echo 'KUBELET_EXTRA_ARGS=""' > /tmp/kubelet
-    #rsync -avz -e "${ssh_command}" /tmp/kubelet root@${HOST}:/etc/sysconfig/kubelet
+        # 设置kubelet启动额外参数
+        #echo 'KUBELET_EXTRA_ARGS=""' > /tmp/kubelet
+        #rsync -avz -e "${ssh_command}" /tmp/kubelet root@${HOST}:/etc/sysconfig/kubelet
 
-    if [ "$INSTALL_OFFLINE" != "true" ]; then
-      # 提前拉取镜像
-      $ssh_command root@${HOST} "kubeadm config images pull --config /etc/kubernetes/kubeadmcfg.yaml"
-    fi
+        if [ "$INSTALL_OFFLINE" != "true" ]; then
+            # 提前拉取镜像
+            $ssh_command root@${HOST} "kubeadm config images pull --config /etc/kubernetes/kubeadmcfg.yaml"
+        fi
 
-    # 添加环境变量
-    $ssh_command root@${HOST} "! grep KUBECONFIG /root/.bash_profile \
+        # 添加环境变量
+        $ssh_command root@${HOST} "! grep KUBECONFIG /root/.bash_profile \
             && echo 'export KUBECONFIG=/etc/kubernetes/admin.conf' >> /root/.bash_profile"
 
-    if [ $i -eq 0 ]; then
-      # 初始化
-      kubeadm init --config /etc/kubernetes/kubeadmcfg.yaml --upload-certs
-      Return_Error_Exit "kubeadm init"
-      sleep 60
-      [ ! -d $HOME/.kube ] && mkdir -p $HOME/.kube
-      ln -sf /etc/kubernetes/admin.conf $HOME/.kube/config
-      # chown $(id -u):$(id -g) $HOME/.kube/config
-    else
-      Yellow_Echo "以下操作失败后可手动在相应节点执行"
-      Green_Echo "节点 $HOST"
-      certificate_key=$(kubeadm init phase upload-certs --upload-certs | tail -1)
-      join_command=$(kubeadm token create --print-join-command)
-      echo "$join_command --control-plane --certificate-key $certificate_key"
-      $ssh_command root@${HOST} "$join_command --control-plane --certificate-key $certificate_key"
-    fi
+        if [ $i -eq 0 ]; then
+            # 初始化
+            kubeadm init --config /etc/kubernetes/kubeadmcfg.yaml --upload-certs
+            Return_Error_Exit "kubeadm init"
+            sleep 60
+            [ ! -d $HOME/.kube ] && mkdir -p $HOME/.kube
+            ln -sf /etc/kubernetes/admin.conf $HOME/.kube/config
+            # chown $(id -u):$(id -g) $HOME/.kube/config
+        else
+            Yellow_Echo "以下操作失败后可手动在相应节点执行"
+            Green_Echo "节点 $HOST"
+            certificate_key=$(kubeadm init phase upload-certs --upload-certs | tail -1)
+            join_command=$(kubeadm token create --print-join-command)
+            echo "$join_command --control-plane --certificate-key $certificate_key"
+            $ssh_command root@${HOST} "$join_command --control-plane --certificate-key $certificate_key"
+        fi
 
-  done
-  echo '安装k8s done! ' >>${install_log}
+    done
+    echo '安装k8s done! ' >>${install_log}
 }
