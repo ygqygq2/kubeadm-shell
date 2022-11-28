@@ -161,18 +161,18 @@ Get_Dist_Name() {
 
 Get_RHEL_Version() {
     Get_Dist_Name
-    if [ "${DISTRO}" = "RHEL" ]; then
+    if [ "${DISTRO}" = "RHEL" ] || [ "${DISTRO}" = "CentOS" ]; then
         if grep -Eqi "release 5." /etc/redhat-release; then
-            echo "Current Version: RHEL Ver 5"
+            echo "Current Version: $DISTRO Ver 5"
             RHEL_Ver='5'
         elif grep -Eqi "release 6." /etc/redhat-release; then
-            echo "Current Version: RHEL Ver 6"
+            echo "Current Version: $DISTRO Ver 6"
             RHEL_Ver='6'
         elif grep -Eqi "release 7." /etc/redhat-release; then
-            echo "Current Version: RHEL Ver 7"
+            echo "Current Version: $DISTRO Ver 7"
             RHEL_Ver='7'
         elif grep -Eqi "release 8." /etc/redhat-release; then
-            echo "Current Version: RHEL Ver 8"
+            echo "Current Version: $DISTRO Ver 8"
             RHEL_Ver='8'
         fi
         RHEL_Version="$(cat /etc/redhat-release | sed 's/.*release\ //' | sed 's/\ .*//')"
@@ -457,24 +457,21 @@ function Ubuntu_Deadline() {
     esac
 }
 
-function CentOS6_Modify_Source() {
+function CentOS_Modify_Source() {
+    Get_RHEL_Version
     if echo "${CentOS_Version}" | grep -Eqi "^6"; then
         Yellow_Echo "CentOS 6 is now end of life, use vault repository."
-        mkdir /etc/yum.repos.d/bak
-        mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak/
-        curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-vault-6.10.repo
-    fi
-}
-
-function CentOS8_Modify_Source() {
-    if echo "${CentOS_Version}" | grep -Eqi "^8" && [ "${isCentosStream}" != "y" ]; then
+        local repo_url="https://mirrors.aliyun.com/repo/Centos-vault-6.10.repo"
+    elif  echo "${CentOS_Version}" | grep -Eqi "^7"; then
+        local repo_url="https://mirrors.aliyun.com/repo/Centos-7.repo"
+    elif echo "${CentOS_Version}" | grep -Eqi "^8" && [ "${isCentosStream}" != "y" ]; then
         Yellow_Echo "CentOS 8 is now end of life, use vault repository."
-        if [ ! -s /etc/yum.repos.d/CentOS8-vault.repo ]; then
-            mkdir /etc/yum.repos.d/bak
-            mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak/
-            curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo
-        fi
+        local repo_url="https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo"
     fi
+
+    mkdir /etc/yum.repos.d/bak
+    mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak/
+    curl -o /etc/yum.repos.d/CentOS-Base.repo "$repo_url"
 }
 
 function Ubuntu_Docker_Source() {
@@ -543,11 +540,22 @@ function RHEL_Crio_Source() {
     curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo \
         https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
     curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo \
-        https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+        https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
     sed -i 's@gpgcheck=1@gpgcheck=0@g' /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
 }
 
 function Modify_Source() {
+    if [ "${DISTRO}" = "RHEL" ]; then
+        RHEL_Modify_Source
+        RHEL_Kubernetes_Source
+    elif [ "${DISTRO}" = "Ubuntu" ]; then
+        Ubuntu_Modify_Source
+        Ubuntu_Kubernetes_Source
+    elif [ "${DISTRO}" = "CentOS" ]; then
+        CentOS_Modify_Source
+        RHEL_Kubernetes_Source
+    fi
+
     # 判断 container runtime 类型
     case $INSTALL_CR in
     docker | containerd)
@@ -570,17 +578,6 @@ function Modify_Source() {
         ;;
     esac
 
-    if [ "${DISTRO}" = "RHEL" ]; then
-        RHEL_Modify_Source
-        RHEL_Kubernetes_Source
-    elif [ "${DISTRO}" = "Ubuntu" ]; then
-        Ubuntu_Modify_Source
-        Ubuntu_Kubernetes_Source
-    elif [ "${DISTRO}" = "CentOS" ]; then
-        CentOS6_Modify_Source
-        CentOS8_Modify_Source
-        RHEL_Kubernetes_Source
-    fi
     echo '添加包管理源 done!' >>${install_log}
 }
 
