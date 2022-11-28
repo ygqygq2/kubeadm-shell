@@ -627,10 +627,12 @@ function CentOS_Dependent() {
 
     if echo "${CentOS_Version}" | grep -Eqi "^7" || echo "${RHEL_Version}" | grep -Eqi "^7" || echo "${Aliyun_Version}" | grep -Eqi "^2" || echo "${Alibaba_Version}" | grep -Eqi "^2" || echo "${Oracle_Version}" | grep -Eqi "^7"; then
         if [ "${DISTRO}" = "Oracle" ]; then
-            yum -y reinstall oracle-epel-release
+            yum -y remove oracle-epel-release
+            yum -y install oracle-epel-release
             yum -y --enablerepo=*EPEL* install oniguruma-devel
         else
-            yum -y reinstall epel-release
+            yum -y remove epel-release
+            yum -y install epel-release
             if [ "${country}" = "CN" ]; then
                 sed -e 's!^metalink=!#metalink=!g' \
                     -e 's!^#baseurl=!baseurl=!g' \
