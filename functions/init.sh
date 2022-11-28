@@ -627,15 +627,15 @@ function CentOS_Dependent() {
 
     if echo "${CentOS_Version}" | grep -Eqi "^7" || echo "${RHEL_Version}" | grep -Eqi "^7" || echo "${Aliyun_Version}" | grep -Eqi "^2" || echo "${Alibaba_Version}" | grep -Eqi "^2" || echo "${Oracle_Version}" | grep -Eqi "^7"; then
         if [ "${DISTRO}" = "Oracle" ]; then
-            yum -y install oracle-epel-release
+            yum -y reinstall oracle-epel-release
             yum -y --enablerepo=*EPEL* install oniguruma-devel
         else
-            yum -y install epel-release
+            yum -y reinstall epel-release
             if [ "${country}" = "CN" ]; then
                 sed -e 's!^metalink=!#metalink=!g' \
                     -e 's!^#baseurl=!baseurl=!g' \
-                    -e 's!//download\.fedoraproject\.org/pub!//mirrors.ustc.edu.cn!g' \
-                    -e 's!//download\.example/pub!//mirrors.ustc.edu.cn!g' \
+                    -e 's!//download\.fedoraproject\.org/pub!//mirrors.aliyun.com!g' \
+                    -e 's!//download\.example/pub!//mirrors.aliyun.com!g' \
                     -i /etc/yum.repos.d/epel*.repo
             fi
         fi
