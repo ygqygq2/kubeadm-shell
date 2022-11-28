@@ -150,6 +150,14 @@ runtime_root = "/run/runc"
 EOF
     else
         $PM install -y cri-o
+        if ! runc -v | grep libseccomp; then
+            \mv /usr/bin/runc /usr/bin/runc.bak
+        fi
+        # runc可能版本过旧，ref: https://github.com/opencontainers/runc/releases/latest
+        runc_version=$(wget -qO- -t5 -T10 "https://api.github.com/repos/opencontainers/runc/releases/latest" |
+            grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+        wget https://github.com/opencontainers/runc/releases/download/$runc_version/runc.amd64 -O /usr/bin/runc
+        chmod a+x /usr/bin/runc
     fi
 
     Install_Crictl
