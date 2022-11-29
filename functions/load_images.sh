@@ -9,6 +9,10 @@
 ##############################################################
 
 function Load_Images() {
+    if [ "$INSTALL_OFFLINE" != "true" ]; then
+        return 0
+    fi
+
     # 判断容器管理命令
     case $INSTALL_CR in
     docker)
