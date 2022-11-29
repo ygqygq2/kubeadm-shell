@@ -101,7 +101,9 @@ EOF
     mkdir -p /etc/containerd
     containerd config default | sudo tee /etc/containerd/config.toml
     sed -i "s#k8s.gcr.io#${IMAGE_REPOSITORY}#g" /etc/containerd/config.toml
-    sed -i '/registry.mirrors/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]\n\ \ \ \ \ \ \ \ \ \ endpoint = ["https://ciluuy3h.mirror.aliyuncs.com", "https://registry-1.docker.io"]' /etc/containerd/config.toml
+    if ! grep -Eq ciluuy3h.mirror.aliyuncs.com /etc/containerd/config.toml; then
+        sed -i '/registry.mirrors/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]\n\ \ \ \ \ \ \ \ \ \ endpoint = ["https://ciluuy3h.mirror.aliyuncs.com", "https://registry-1.docker.io"]' /etc/containerd/config.toml
+    fi
     sed -i 's#sandbox_image.*#sandbox_image = "ygqygq2/pause:3.8"#' /etc/containerd/config.toml
     #sed -i '/containerd.runtimes.runc.options/a\ \ \ \ \ \ \ \ \ \ \ \ SystemdCgroup = true' /etc/containerd/config.toml
     #sed -i "s#https://registry-1.docker.io#https://registry.cn-hangzhou.aliyuncs.com#g" /etc/containerd/config.toml
@@ -142,12 +144,6 @@ EOF
 
     if [ "${DISTRO}" = "Ubuntu" ]; then
         $PM -y install cri-o cri-o-runc
-        cat >/etc/crio/crio.conf.d/cri-o-runc <<EOF
-[crio.runtime.runtimes.runc]
-runtime_path = ""
-runtime_type = "oci"
-runtime_root = "/run/runc"
-EOF
     else
         $PM install -y cri-o
         if ! runc -v | grep libseccomp; then
@@ -158,6 +154,22 @@ EOF
             grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
         wget https://github.com/opencontainers/runc/releases/download/$runc_version/runc.amd64 -O /usr/bin/runc
         chmod a+x /usr/bin/runc
+    fi
+
+    cat >/etc/crio/crio.conf.d/cri-o-runc <<EOF
+[crio.runtime.runtimes.runc]
+runtime_path = ""
+runtime_type = "oci"
+runtime_root = "/run/runc"
+EOF
+
+    if ! grep -Eq ciluuy3h.mirror.aliyuncs.com /etc/containers/registries.conf; then
+        cat >>/etc/containers/registries.conf <<EOF
+[[registry]]
+location="docker.io"
+[[registry.mirror]]
+location="ciluuy3h.mirror.aliyuncs.com"
+EOF
     fi
 
     Install_Crictl
