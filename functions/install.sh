@@ -156,6 +156,7 @@ EOF
         chmod a+x /usr/bin/runc
     fi
 
+    mkdir -p /etc/crio/crio.conf.d
     cat >/etc/crio/crio.conf.d/cri-o-runc <<EOF
 [crio.runtime.runtimes.runc]
 runtime_path = ""
@@ -180,6 +181,7 @@ timeout: 2
 debug: false
 pull-image-on-create: false
 EOF
+    sed -i 's@#pause_image.*@pause_image = "ygqygq2/pause:3.8"@' /etc/crio/crio.conf
     sed -i "s#k8s.gcr.io#${IMAGE_REPOSITORY}#g" /etc/crio/crio.conf
     systemctl daemon-reload
     systemctl enable crio --now
