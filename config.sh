@@ -25,11 +25,11 @@ INSTALL_SLB="true"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.26.1"
+KUBEVERSION="v1.27.5"
 # 定义安装 Container runtimes: docker/containerd/crio
 INSTALL_CR="containerd"
 # docker 版本, INSTALL_CR="docker"时设置
-DOCKERVERSION="20.10.10"
+DOCKERVERSION="24.0.5"
 #
 KUBERNETES_CNI_VERSION=""
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
