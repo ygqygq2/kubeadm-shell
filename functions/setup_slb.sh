@@ -35,7 +35,6 @@ global
   uid 99
   gid 99
   #daemon
-  nbproc 1
   pidfile haproxy.pid
 
 defaults
@@ -75,11 +74,12 @@ EOF
   check_haproxy_container=$($cli_command ps | grep -w k8s-haproxy)
   if [ -z "$check_haproxy_container" ]; then
     $cli_command run -d --name k8s-haproxy \
+      --ulimit nofile=131072:131072 \
       -v /etc/haproxy:/usr/local/etc/haproxy:ro \
       -p 8443:8443 \
       -p 1080:1080 \
       --restart always \
-      haproxy:1.7.8-alpine
+      haproxy:2.9.6-alpine
     Return_Error_Exit "$cli_command 安装 haproxy"
   fi
 

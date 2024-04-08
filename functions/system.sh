@@ -98,6 +98,7 @@ EOF
     modprobe ip_vs_wrr
     modprobe ip_vs_sh
     modprobe nf_conntrack
+    modprobe br_netfilter
 
     $PM install -y ipvsadm
     if [ "${DISTRO}" == "CentOS" ]; then
@@ -112,6 +113,7 @@ modules=("ip_vs"
 "ip_vs_wrr"
 "ip_vs_sh"
 "nf_conntrack"
+"br_netfilter"
 )
 
 for mod in \${modules[@]}; do

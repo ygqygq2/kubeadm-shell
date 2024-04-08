@@ -488,27 +488,23 @@ function RHEL_Docker_Source() {
 
 function Ubuntu_Kubernetes_Source() {
     curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
-    wget -O /tmp/kubernetes-archive-keyring.gpg.tar.gz https://github.com/ygqygq2/mirror-file/releases/download/main/kubernetes-archive-keyring.gpg.tar.gz
-    tar -zxvf /tmp/kubernetes-archive-keyring.gpg.tar.gz -C /tmp/
-    \mv /tmp/kubernetes-archive-keyring.gpg /usr/share/keyrings/
-    cat >/etc/apt/sources.list.d/kubernetes.list <<EOF
-deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
-EOF
+    curl -fsSL https://mirrors.aliyun.com/kubernetes-new/core/stable/${KUBEVERSION%.*}/deb/Release.key | \
+        gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://mirrors.aliyun.com/kubernetes-new/core/stable/v1.28/deb/ /" | \
+        tee /etc/apt/sources.list.d/kubernetes.list	
     apt-get -y update
 }
 
 function RHEL_Kubernetes_Source() {
-    cat >/etc/yum.repos.d/kubernetes.repo <<EOF
+    cat <<EOF | tee /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
-baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+baseurl=https://mirrors.aliyun.com/kubernetes-new/core/stable/${KUBEVERSION%.*}/rpm/
 enabled=1
 gpgcheck=0
-repo_gpgcheck=0
-gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+gpgkey=https://mirrors.aliyun.com/kubernetes-new/core/stable/${KUBEVERSION%.*}/rpm/repodata/repomd.xml.key
 EOF
-    rpm --import https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg \
-        https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+    rpm --import https://mirrors.aliyun.com/kubernetes-new/core/stable/${KUBEVERSION%.*}/rpm/repodata/repomd.xml.key
 }
 
 function Ubuntu_Crio_Source() {

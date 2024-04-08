@@ -62,6 +62,8 @@ function Do_All() {
         done
     fi
 
+    [ ! -d $SH_DIR/ ] && exit 1
+    [ ! -d $PACKAGES_DIR/ ] && exit 1
     # 第一台master节点
     if [[ "$INSTALL_CLUSTER" != "false" && "$HOSTNAME" = "${NAMES[0]}" ]]; then
         check_running=$(ps aux | grep "/bin/bash $SH_DIR/$(basename $ME)" | grep -v grep)
@@ -73,6 +75,8 @@ function Do_All() {
                 rsync -avz -e "${ssh_command}" /etc/hosts root@${HOSTS[$i]}:/etc/hosts
                 rsync -avz -e "${ssh_command}" $SH_DIR/ root@${HOSTS[$i]}:$SH_DIR/
                 $ssh_command root@${HOSTS[$i]} "/bin/bash $SH_DIR/$(basename $ME)"
+	        # github 下载安装包慢，同步下安装包	
+                rsync -avz -e "${ssh_command}" root@${HOSTS[$i]}:${PACKAGES_DIR}/ ${PACKAGES_DIR}/
             done
         else
             # 准备yum源
