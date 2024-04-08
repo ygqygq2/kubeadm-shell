@@ -104,7 +104,7 @@ EOF
     if ! grep -Eq ciluuy3h.mirror.aliyuncs.com /etc/containerd/config.toml; then
         sed -i '/registry.mirrors/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]\n\ \ \ \ \ \ \ \ \ \ endpoint = ["https://ciluuy3h.mirror.aliyuncs.com", "https://registry-1.docker.io"]' /etc/containerd/config.toml
     fi
-    sed -i 's#sandbox_image.*#sandbox_image = "ygqygq2/pause:3.8"#' /etc/containerd/config.toml
+    sed -i 's#sandbox_image.*#sandbox_image = "ygqygq2/pause:3.9"#' /etc/containerd/config.toml
     #sed -i '/containerd.runtimes.runc.options/a\ \ \ \ \ \ \ \ \ \ \ \ SystemdCgroup = true' /etc/containerd/config.toml
     #sed -i "s#https://registry-1.docker.io#https://registry.cn-hangzhou.aliyuncs.com#g" /etc/containerd/config.toml
 
