@@ -12,20 +12,6 @@ function Set_Slb() {
   # 设置keepalived+haproxy
   [ $INSTALL_SLB != "true" ] && return 0
 
-  # 判断容器管理命令
-  case $INSTALL_CR in
-  docker)
-    cli_command="docker"
-    ;;
-  containerd)
-    cli_command="nerdctl --namespace=k8s.io"
-    ;;
-  *)
-    Red_Echo "不支持的 Container Runtime 类型"
-    exit 1
-    ;;
-  esac
-
   # 安装 haproxy
   [ ! -d /etc/haproxy ] && mkdir /etc/haproxy
   cat >/etc/haproxy/haproxy.cfg <<EOF
@@ -72,19 +58,12 @@ $(for m in ${!NAMES[@]}; do echo "  server ${NAMES[m]} ${HOSTS[m]}:6443 weight 1
 EOF
 
   # 启动haproxy
-  check_haproxy_container=$($cli_command ps | grep -w k8s-haproxy)
-  if [ -z "$check_haproxy_container" ]; then
-    $cli_command run -d --name k8s-haproxy \
-      --ulimit nofile=131072:131072 \
-      -v /etc/haproxy:/usr/local/etc/haproxy:ro \
-      -p 8443:8443 \
-      -p 1080:1080 \
-      --restart always \
-      haproxy:2.9.6-alpine
-    Return_Error_Exit "$cli_command 安装 haproxy"
+  rsync -avz $SH_DIR/conf/haproxy/haproxy.yaml /etc/kubernetes/manifests/
+  Return_Error_Exit "$cli_command 安装 haproxy"
   fi
 
-  # 启动
+  # 安装 keepalived
+  [ ! -d /etc/keepalived ] && mkdir /etc/keepalived
   # 载入内核相关模块
   # lsmod | grep ip_vs
   modprobe ip_vs
@@ -94,17 +73,39 @@ EOF
   network_card_name=$(ip route | egrep "^$subnet" | awk '{print $3}')
 
   # 启动keepalived
-  check_keepalived_container=$($cli_command ps | grep -w k8s-keepalived)
-  if [ -z "$check_keepalived_container" ]; then
-    $cli_command run --net=host --cap-add=NET_ADMIN \
-      -e KEEPALIVED_INTERFACE=$network_card_name \
-      -e KEEPALIVED_VIRTUAL_IPS="#PYTHON2BASH:['$k8s_master_vip']" \
-      -e KEEPALIVED_UNICAST_PEERS="#PYTHON2BASH:['${HOST[0]}','${HOST[1]}','${HOST[2]}']" \
-      -e KEEPALIVED_PASSWORD=k8s \
-      --name k8s-keepalived \
-      --restart always \
-      -d osixia/keepalived:latest
-    Return_Error_Exit "$cli_command 安装 keepalived"
-  fi
+  cat >/etc/keepalived/keepalived.conf<<EOF
+! /etc/keepalived/keepalived.conf
+! Configuration File for keepalived
+global_defs {
+    router_id LVS_DEVEL
+}
+vrrp_script check_apiserver {
+  script "/etc/keepalived/check_apiserver.sh"
+  interval 3
+  weight -2
+  fall 10
+  rise 2
+}
+
+vrrp_instance VI_1 {
+    state $([ "$HOSTNAME" == "${NAMES[0]}" ] && echo "MASTER" || echo "BACKUP")
+    interface ${network_card_name}
+    virtual_router_id 60
+    priority $([ "$HOSTNAME" == "${NAMES[0]}" ] && echo "101" || echo $((1 + RANDOM % 100)))
+    authentication {
+        auth_type PASS
+        auth_pass k8s
+    }
+    virtual_ipaddress {
+        ${k8s_master_vip}
+    }
+    track_script {
+        check_apiserver
+    }
+}
+EOF
+  rsync -avz $SH_DIR/conf/keepalived/check_apiserver.sh /etc/keepalived/
+  rsync -avz $SH_DIR/conf/keepalived/keepalived.yaml /etc/kubernetes/manifests/
+  Return_Error_Exit "安装 keepalived"
   echo '安装k8s keepalived haproxy done! ' >>${install_log}
 }
