@@ -60,7 +60,6 @@ EOF
   # 启动haproxy
   rsync -avz $SH_DIR/conf/haproxy/haproxy.yaml /etc/kubernetes/manifests/
   Return_Error_Exit "$cli_command 安装 haproxy"
-  fi
 
   # 安装 keepalived
   [ ! -d /etc/keepalived ] && mkdir /etc/keepalived
