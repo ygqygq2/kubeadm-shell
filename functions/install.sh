@@ -208,9 +208,9 @@ function Install() {
 
     # 安装kubelet
     if [ "${PM}" = "apt" ]; then
-        $PM -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+=$KUBERNETES_CNI_VERSION"-00"} kubelet=${KUBEVERSION/v/}-00 kubeadm=${KUBEVERSION/v/}-00 kubectl=${KUBEVERSION/v/}-00
+        $PM -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+=$KUBERNETES_CNI_VERSION"-00"} kubelet kubeadm kubectl
     elif [ "${PM}" = "yum" ]; then
-        $PM -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+-$KUBERNETES_CNI_VERSION} kubelet-${KUBEVERSION/v/} kubeadm-${KUBEVERSION/v/} kubectl-${KUBEVERSION/v/}
+        $PM -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+-$KUBERNETES_CNI_VERSION} kubelet kubeadm kubectl
     else
         Red_Echo "[-] 未知的包管理器, 请检查!"
         exit 1
