@@ -136,6 +136,10 @@ EOF
     echo '设置开机加载内核模块 done! ' >>${install_log}
 
     # 防火墙设置，否则可能不能转发
+    if ! command -v iptables > /dev/null; then
+        echo "iptables not found. Installing..."
+        $PM -y install iptables
+    fi
     iptables -P FORWARD ACCEPT
 
     # 关闭交换分区，并永久注释

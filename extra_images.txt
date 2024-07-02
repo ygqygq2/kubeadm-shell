@@ -1,2 +1,2 @@
-haproxy:1.7.8-alpine
-osixia/keepalived:latest
+haproxy:2.9.6-alpine
+osixia/keepalived:2.0.17

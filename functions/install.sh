@@ -115,6 +115,7 @@ EOF
         wget https://github.com/containernetworking/plugins/releases/download/${cni_plugins_version}/cni-plugins-linux-${ARCH}-${cni_plugins_version}.tgz -O \
             cni-plugins-linux-${ARCH}-latest.tgz || echo '下载 cni-plugins 失败! ' >>${install_log}
     fi
+    [ ! -d /opt/cni/bin ] && mkdir -p /opt/cni/bin
     tar Cxzvf /opt/cni/bin cni-plugins-linux-${ARCH}-latest.tgz
 
     systemctl restart containerd
