@@ -339,7 +339,7 @@ function Ubuntu_Modify_Source() {
         CodeName='maverick'
     elif grep -Eqi "11.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^11.04'; then
         CodeName='natty'
-    elif grep -Eqi "11.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^11.10'; then
+    elif  grep -Eqi "11.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^11.10'; then
         CodeName='oneiric'
     elif grep -Eqi "12.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^12.10'; then
         CodeName='quantal'
@@ -370,27 +370,25 @@ function Ubuntu_Modify_Source() {
     elif grep -Eqi "16.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^16.10'; then
         CodeName='yakkety'
     elif grep -Eqi "18.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^18.04'; then
-        OS='xUbuntu_18.04'
+        Ubuntu_Deadline bionic
     elif grep -Eqi "18.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^18.10'; then
         CodeName='cosmic'
     elif grep -Eqi "19.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^19.04'; then
         CodeName='disco'
     elif grep -Eqi "19.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^19.10'; then
         CodeName='eoan'
-    elif grep -Eqi "20.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^20.04'; then
-        OS='xUbuntu_20.04'
     elif grep -Eqi "20.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^20.10'; then
         CodeName='groovy'
-        OS='xUbuntu_20.10'
     elif grep -Eqi "21.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^21.04'; then
-        Ubuntu_Deadline hirsute
-        OS='xUbuntu_21.04'
+        CodeName='hirsute'
     elif grep -Eqi "21.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^21.10'; then
-        Ubuntu_Deadline impish
-        OS='xUbuntu_21.10'
-    elif grep -Eqi "22.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^22.04'; then
-        Ubuntu_Deadline jammy
-        OS='xUbuntu_22.04'
+        CodeName='impish'
+    elif grep -Eqi "22.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^22.10'; then
+        CodeName='kinetic'
+    elif grep -Eqi "23.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^23.04'; then
+        CodeName='lunar'
+    elif grep -Eqi "23.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^23.10'; then
+        Ubuntu_Deadline mantic
     fi
     if [ "${CodeName}" != "" ]; then
         \cp /etc/apt/sources.list /etc/apt/sources.list.$(date +"%Y%m%d")
@@ -417,43 +415,38 @@ function Check_Old_Releases_URL() {
     fi
 }
 
-function Ubuntu_Deadline() {
-    trusty_deadline=$(date -d "2022-4-30 00:00:00" +%s)
-    xenial_deadline=$(date -d "2024-4-30 00:00:00" +%s)
-    hirsute_deadline=$(date -d "2022-1-30 00:00:00" +%s)
-    impish_deadline=$(date -d "2022-7-30 00:00:00" +%s)
-    cur_time=$(date +%s)
+function Ubuntu_Deadline()
+{
+    trusty_deadline=`date -d "2024-4-30 00:00:00" +%s`
+    xenial_deadline=`date -d "2026-4-30 00:00:00" +%s`
+    bionic_deadline=`date -d "2028-7-30 00:00:00" +%s`
+    mantic_deadline=`date -d "2024-7-30 00:00:00" +%s`
+    cur_time=`date  +%s`
     case "$1" in
-    trusty)
-        if [ ${cur_time} -gt ${trusty_deadline} ]; then
-            echo "${cur_time} > ${trusty_deadline}"
-            Check_Old_Releases_URL trusty
-        fi
-        ;;
-    xenial)
-        if [ ${cur_time} -gt ${xenial_deadline} ]; then
-            echo "${cur_time} > ${xenial_deadline}"
-            Check_Old_Releases_URL xenial
-        fi
-        ;;
-    eoan)
-        if [ ${cur_time} -gt ${eoan_deadline} ]; then
-            echo "${cur_time} > ${eoan_deadline}"
-            Check_Old_Releases_URL eoan
-        fi
-        ;;
-    hirsute)
-        if [ ${cur_time} -gt ${hirsute_deadline} ]; then
-            echo "${cur_time} > ${hirsute_deadline}"
-            Check_Old_Releases_URL hirsute
-        fi
-        ;;
-    impish)
-        if [ ${cur_time} -gt ${impish_deadline} ]; then
-            echo "${cur_time} > ${impish_deadline}"
-            Check_Old_Releases_URL impish
-        fi
-        ;;
+        trusty)
+            if [ ${cur_time} -gt ${trusty_deadline} ]; then
+                echo "${cur_time} > ${trusty_deadline}"
+                Check_Old_Releases_URL trusty
+            fi
+            ;;
+        xenial)
+            if [ ${cur_time} -gt ${xenial_deadline} ]; then
+                echo "${cur_time} > ${xenial_deadline}"
+                Check_Old_Releases_URL xenial
+            fi
+            ;;
+        bionic)
+            if [ ${cur_time} -gt ${bionic_deadline} ]; then
+                echo "${cur_time} > ${bionic_deadline}"
+                Check_Old_Releases_URL bionic
+            fi
+            ;;
+        mantic)
+            if [ ${cur_time} -gt ${mantic_deadline} ]; then
+                echo "${cur_time} > ${mantic_deadline}"
+                Check_Old_Releases_URL mantic
+            fi
+            ;;
     esac
 }
 
@@ -475,8 +468,8 @@ function CentOS_Modify_Source() {
 }
 
 function Ubuntu_Docker_Source() {
-    curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | apt-key add -
-    add-apt-repository "deb [arch=${ARCH}] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+    curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     apt-get -y update
 }
 
@@ -487,7 +480,6 @@ function RHEL_Docker_Source() {
 }
 
 function Ubuntu_Kubernetes_Source() {
-    curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
     curl -fsSL https://mirrors.aliyun.com/kubernetes-new/core/stable/${KUBEVERSION%.*}/deb/Release.key | \
         gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://mirrors.aliyun.com/kubernetes-new/core/stable/${KUBEVERSION%.*}/deb/ /" | \
