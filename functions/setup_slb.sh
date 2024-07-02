@@ -104,6 +104,7 @@ vrrp_instance VI_1 {
 }
 EOF
   rsync -avz $SH_DIR/conf/keepalived/check_apiserver.sh /etc/keepalived/
+  chmod a+x /etc/keepalived/check_apiserver.sh
   rsync -avz $SH_DIR/conf/keepalived/keepalived.yaml /etc/kubernetes/manifests/
   Return_Error_Exit "安装 keepalived"
   echo '安装k8s keepalived haproxy done! ' >>${install_log}

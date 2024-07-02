@@ -25,7 +25,7 @@ INSTALL_SLB="true"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.28.8"
+KUBEVERSION="v1.29.5"
 # 定义安装 Container runtimes: docker/containerd/crio
 INSTALL_CR="containerd"
 # docker 版本, INSTALL_CR="docker"时设置

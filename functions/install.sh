@@ -23,7 +23,7 @@ function Install_Docker() {
     [ ! -d /etc/docker ] && mkdir /etc/docker
     cat >/etc/docker/daemon.json <<EOF
 {
-    "registry-mirrors": ["https://ciluuy3h.mirror.aliyuncs.com"],
+    "registry-mirrors": ["https://docker.m.daocloud.io"],
     "exec-opts": ["native.cgroupdriver=systemd"]
 }
 EOF
@@ -101,8 +101,8 @@ EOF
     mkdir -p /etc/containerd
     containerd config default | sudo tee /etc/containerd/config.toml
     sed -i "s#k8s.gcr.io#${IMAGE_REPOSITORY}#g" /etc/containerd/config.toml
-    if ! grep -Eq ciluuy3h.mirror.aliyuncs.com /etc/containerd/config.toml; then
-        sed -i '/registry.mirrors/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]\n\ \ \ \ \ \ \ \ \ \ endpoint = ["https://ciluuy3h.mirror.aliyuncs.com", "https://registry-1.docker.io"]' /etc/containerd/config.toml
+    if ! grep -Eq docker.m.daocloud.io /etc/containerd/config.toml; then
+        sed -i '/registry.mirrors/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]\n\ \ \ \ \ \ \ \ \ \ endpoint = ["https://docker.m.daocloud.io", "https://registry-1.docker.io"]' /etc/containerd/config.toml
     fi
     sed -i 's#sandbox_image.*#sandbox_image = "ygqygq2/pause:3.9"#' /etc/containerd/config.toml
     #sed -i '/containerd.runtimes.runc.options/a\ \ \ \ \ \ \ \ \ \ \ \ SystemdCgroup = true' /etc/containerd/config.toml
@@ -165,12 +165,12 @@ runtime_type = "oci"
 runtime_root = "/run/runc"
 EOF
 
-    if ! grep -Eq ciluuy3h.mirror.aliyuncs.com /etc/containers/registries.conf; then
+    if ! grep -Eq docker.m.daocloud.io /etc/containers/registries.conf; then
         cat >>/etc/containers/registries.conf <<EOF
 [[registry]]
 location="docker.io"
 [[registry.mirror]]
-location="ciluuy3h.mirror.aliyuncs.com"
+location="docker.m.daocloud.io"
 EOF
     fi
 

@@ -468,7 +468,9 @@ function CentOS_Modify_Source() {
 }
 
 function Ubuntu_Docker_Source() {
-    curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    if [ ! -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
+        curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    fi
     echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     apt-get -y update
 }
@@ -480,8 +482,10 @@ function RHEL_Docker_Source() {
 }
 
 function Ubuntu_Kubernetes_Source() {
+    if [ ! -f /etc/apt/keyrings/kubernetes-apt-keyring.gpg ]; then
     curl -fsSL https://mirrors.aliyun.com/kubernetes-new/core/stable/${KUBEVERSION%.*}/deb/Release.key | \
         gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    fi
     echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://mirrors.aliyun.com/kubernetes-new/core/stable/${KUBEVERSION%.*}/deb/ /" | \
         tee /etc/apt/sources.list.d/kubernetes.list
     apt-get -y update
