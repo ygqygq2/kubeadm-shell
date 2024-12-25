@@ -12,14 +12,19 @@ function Install_Docker() {
     # 安装 docker-ce 并启动
     Blue_Echo "[+] Installing docker-ce... "
     if [ "${PM}" = "apt" ]; then
-        $PM -y install docker-ce=${DOCKERVERSION}-00 docker-ce-cli=${DOCKERVERSION}-00
+        DOCKER_VERSION=$(apt-cache madison docker-ce | grep ${DOCKERVERSION} | head -n 1 | awk '{print $3}')
+        if [ -z "$DOCKER_VERSION" ]; then
+            Red_Echo "[-] 未找到指定版本的 Docker，请检查版本号!"
+            exit 1
+        fi
+        $PM -y install docker-ce=$DOCKER_VERSION docker-ce-cli=$DOCKER_VERSION
     elif [ "${PM}" = "yum" ]; then
         $PM -y install docker-ce-$DOCKERVERSION docker-ce-cli-$DOCKERVERSION
     else
         Red_Echo "[-] 未知的包管理器, 请检查!"
         exit 1
     fi
-    [ -f /etc/docker/daemon.json ] && \mv /etc/docker/daemon.json-$(date +%F-%H-%M)
+    [ -f /etc/docker/daemon.json ] && \mv "/etc/docker/daemon.json" "/etc/docker/daemon.json-$(date +%F-%H-%M)"
     [ ! -d /etc/docker ] && mkdir /etc/docker
     cat >/etc/docker/daemon.json <<EOF
 {
@@ -208,9 +213,28 @@ function Install() {
 
     # 安装kubelet
     if [ "${PM}" = "apt" ]; then
-        $PM -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+=$KUBERNETES_CNI_VERSION"-00"} kubelet kubeadm kubectl
+        # 获取 kubectl、kubelet、kubeadm 的版本号
+        KUBE_VERSION=$(apt-cache madison kubeadm | grep ${KUBEVERSION} | head -n 1 | awk '{print $3}')
+        if [ -z "$KUBE_VERSION" ]; then
+            Red_Echo "[-] 未找到指定版本的 kubeadm，请检查版本号!"
+            exit 1
+        fi
+
+        # 获取 kubernetes-cni 的版本号
+        if [ -n "${KUBERNETES_CNI_VERSION}" ]; then
+            CNI_VERSION=$(apt-cache madison kubernetes-cni | grep ${KUBERNETES_CNI_VERSION} | head -n 1 | awk '{print $3}')
+            if [ -z "$CNI_VERSION" ]; then
+                Red_Echo "[-] 未找到指定版本的 kubernetes-cni，请检查版本号!"
+                exit 1
+            fi
+        fi
+
+        # 安装 kubectl、kubelet、kubeadm 和 kubernetes-cni
+        $PM -y install kubernetes-cni${CNI_VERSION:+=$CNI_VERSION} kubelet=$KUBE_VERSION kubeadm=$KUBE_VERSION kubectl=$KUBE_VERSION
     elif [ "${PM}" = "yum" ]; then
-        $PM -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+-$KUBERNETES_CNI_VERSION} kubelet kubeadm kubectl
+        KUBE_VERSION=${KUBEVERSION#v}
+        $PM -y install kubernetes-cni${KUBERNETES_CNI_VERSION:+-$KUBERNETES_CNI_VERSION}
+        $PM -y install kubelet-$KUBE_VERSION kubeadm-$KUBE_VERSION kubectl-$KUBE_VERSION
     else
         Red_Echo "[-] 未知的包管理器, 请检查!"
         exit 1

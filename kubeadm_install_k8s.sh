@@ -51,7 +51,7 @@ function Do_All() {
         # 免交互生成ssh key
         [ ! -f ~/.ssh/id_rsa ] && ssh-keygen -t rsa -f ~/.ssh/id_rsa -P ''
         chmod 0600 ~/.ssh/id_rsa
-        for h in ${HOSTS[@]}; do
+        for h in "${HOSTS[@]}"; do
             # 判断能否免密登录
             ssh ${ssh_parameters} -o PreferredAuthentications=publickey ${h} \
                 "ssh ${ssh_parameters} -o PreferredAuthentications=publickey ${h} 'pwd'" >/dev/null
@@ -75,7 +75,7 @@ function Do_All() {
                 rsync -avz -e "${ssh_command}" /etc/hosts root@${HOSTS[$i]}:/etc/hosts
                 rsync -avz -e "${ssh_command}" $SH_DIR/ root@${HOSTS[$i]}:$SH_DIR/
                 $ssh_command root@${HOSTS[$i]} "/bin/bash $SH_DIR/$(basename $ME)"
-	        # github 下载安装包慢，同步下安装包	
+                # github 下载安装包慢，同步下安装包
                 rsync -avz -e "${ssh_command}" root@${HOSTS[$i]}:${PACKAGES_DIR}/ ${PACKAGES_DIR}/
             done
         else

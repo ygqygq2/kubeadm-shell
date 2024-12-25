@@ -723,7 +723,11 @@ function Check_System() {
 
             #检查网卡速率
             ETHRATE=$(ethtool $IFCFG | awk '/Speed:/{print $NF}')
-            [[ "${ETHRATE/"Mb/s"/}" -ge "1000" ]] && ETHRATEACK="$SUCCESS" || ETHRATEACK="$FAILURE"
+            if [[ "$ETHRATE" =~ ^[0-9]+Mb/s$ ]]; then
+                [[ "${ETHRATE/"Mb/s"/}" -ge "1000" ]] && ETHRATEACK="$SUCCESS" || ETHRATEACK="$FAILURE"
+            else
+                ETHRATEACK="$UNKNOWN"
+            fi
 
             printf "$ETHTYPEACK	${IFCFG}网卡类型:			$ETHTYPE\n"
             printf "$DRIVERSACK	${IFCFG}网卡驱动版本:				$DRIVERS\n"

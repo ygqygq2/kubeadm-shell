@@ -50,7 +50,11 @@ if [ -f ~/.bashrc ] ; then
     source ~/.bashrc
 fi
 echo '=========================================================='
-[ -f /etc/redhat-release ] && cat /etc/redhat-release
+if [ -f /etc/redhat-release ]; then
+    cat /etc/redhat-release
+else
+    lsb_release -a
+fi
 echo '=========================================================='
 EOF
     fi
