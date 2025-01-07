@@ -228,6 +228,7 @@ noclientlog
 logchange 0.5
 logdir /var/log/chrony
 EOF
+    [ -f /etc/chrony/chrony.conf ] && ln -sf /etc/chrony.conf /etc/chrony/chrony.conf
 }
 
 function CentOS_InstallNTP() {
