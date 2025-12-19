@@ -49,11 +49,11 @@ INSTALL_SLB="true"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.32.11"
+KUBEVERSION="v1.33.7"
 # 定义安装 Container runtimes: docker/containerd/crio
 INSTALL_CR="docker"
 # docker 版本, INSTALL_CR="docker"时设置
-DOCKERVERSION="27.4.0"
+DOCKERVERSION="27.4.1"
 #
 KUBERNETES_CNI_VERSION=""
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
@@ -101,11 +101,11 @@ INSTALL_SLB="false"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.32.11"
+KUBEVERSION="v1.33.7"
 # 定义安装 Container runtimes: docker/containerd/crio
 INSTALL_CR="docker"
 # docker 版本, INSTALL_CR="docker"时设置
-DOCKERVERSION="27.4.0"
+DOCKERVERSION="27.4.1"
 #
 KUBERNETES_CNI_VERSION=""
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
@@ -144,11 +144,11 @@ INSTALL_SLB="false"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.32.11"
+KUBEVERSION="v1.33.7"
 # 定义安装 Container runtimes: docker/containerd/crio
 INSTALL_CR="docker"
 # docker 版本, INSTALL_CR="docker"时设置
-DOCKERVERSION="27.4.0"
+DOCKERVERSION="27.4.1"
 #
 KUBERNETES_CNI_VERSION=""
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
