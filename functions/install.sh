@@ -109,8 +109,11 @@ EOF
     if ! grep -Eq docker.m.daocloud.io /etc/containerd/config.toml; then
         sed -i '/registry.mirrors/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]\n\ \ \ \ \ \ \ \ \ \ endpoint = ["https://docker.m.daocloud.io", "https://registry-1.docker.io"]' /etc/containerd/config.toml
     fi
-    sed -i 's#sandbox_image.*#sandbox_image = "ygqygq2/pause:3.9"#' /etc/containerd/config.toml
-    #sed -i '/containerd.runtimes.runc.options/a\ \ \ \ \ \ \ \ \ \ \ \ SystemdCgroup = true' /etc/containerd/config.toml
+    sed -i 's#sandbox_image.*#sandbox_image = "ygqygq2/pause:3.10"#' /etc/containerd/config.toml
+    # 启用 SystemdCgroup，这是 Kubernetes 1.31 推荐的 cgroup 驱动
+    if ! grep -q "SystemdCgroup = true" /etc/containerd/config.toml; then
+        sed -i '/\[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options\]/a\ \ \ \ \ \ \ \ \ \ \ \ SystemdCgroup = true' /etc/containerd/config.toml
+    fi
     #sed -i "s#https://registry-1.docker.io#https://registry.cn-hangzhou.aliyuncs.com#g" /etc/containerd/config.toml
 
     cd $PACKAGES_DIR
@@ -187,7 +190,7 @@ timeout: 2
 debug: false
 pull-image-on-create: false
 EOF
-    sed -i 's@#pause_image.*@pause_image = "ygqygq2/pause:3.8"@' /etc/crio/crio.conf
+    sed -i 's@#pause_image.*@pause_image = "ygqygq2/pause:3.10"@' /etc/crio/crio.conf
     sed -i "s#k8s.gcr.io#${IMAGE_REPOSITORY}#g" /etc/crio/crio.conf
     systemctl daemon-reload
     systemctl enable crio --now

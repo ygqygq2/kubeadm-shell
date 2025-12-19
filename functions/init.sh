@@ -174,6 +174,9 @@ Get_RHEL_Version() {
         elif grep -Eqi "release 8." /etc/redhat-release; then
             echo "Current Version: $DISTRO Ver 8"
             RHEL_Ver='8'
+        elif grep -Eqi "release 9." /etc/redhat-release; then
+            echo "Current Version: $DISTRO Ver 9"
+            RHEL_Ver='9'
         fi
         RHEL_Version="$(cat /etc/redhat-release | sed 's/.*release\ //' | sed 's/\ .*//')"
     fi
@@ -378,18 +381,26 @@ function Ubuntu_Modify_Source() {
         CodeName='disco'
     elif grep -Eqi "19.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^19.10'; then
         CodeName='eoan'
+    elif grep -Eqi "20.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^20.04'; then
+        Ubuntu_Deadline focal
     elif grep -Eqi "20.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^20.10'; then
         CodeName='groovy'
     elif grep -Eqi "21.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^21.04'; then
         CodeName='hirsute'
     elif grep -Eqi "21.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^21.10'; then
         CodeName='impish'
+    elif grep -Eqi "22.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^22.04'; then
+        Ubuntu_Deadline jammy
     elif grep -Eqi "22.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^22.10'; then
         CodeName='kinetic'
     elif grep -Eqi "23.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^23.04'; then
         CodeName='lunar'
     elif grep -Eqi "23.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^23.10'; then
-        Ubuntu_Deadline mantic
+        CodeName='mantic'
+    elif grep -Eqi "24.04" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^24.04'; then
+        Ubuntu_Deadline noble
+    elif grep -Eqi "24.10" /etc/*-release || echo "${Ubuntu_Version}" | grep -Eqi '^24.10'; then
+        CodeName='oracular'
     fi
     if [ "${CodeName}" != "" ]; then
         \cp /etc/apt/sources.list /etc/apt/sources.list.$(date +"%Y%m%d")
@@ -421,7 +432,9 @@ function Ubuntu_Deadline()
     trusty_deadline=`date -d "2024-4-30 00:00:00" +%s`
     xenial_deadline=`date -d "2026-4-30 00:00:00" +%s`
     bionic_deadline=`date -d "2028-7-30 00:00:00" +%s`
-    mantic_deadline=`date -d "2024-7-30 00:00:00" +%s`
+    focal_deadline=`date -d "2030-4-30 00:00:00" +%s`
+    jammy_deadline=`date -d "2032-4-30 00:00:00" +%s`
+    noble_deadline=`date -d "2036-4-30 00:00:00" +%s`
     cur_time=`date  +%s`
     case "$1" in
         trusty)
@@ -442,10 +455,22 @@ function Ubuntu_Deadline()
                 Check_Old_Releases_URL bionic
             fi
             ;;
-        mantic)
-            if [ ${cur_time} -gt ${mantic_deadline} ]; then
-                echo "${cur_time} > ${mantic_deadline}"
-                Check_Old_Releases_URL mantic
+        focal)
+            if [ ${cur_time} -gt ${focal_deadline} ]; then
+                echo "${cur_time} > ${focal_deadline}"
+                Check_Old_Releases_URL focal
+            fi
+            ;;
+        jammy)
+            if [ ${cur_time} -gt ${jammy_deadline} ]; then
+                echo "${cur_time} > ${jammy_deadline}"
+                Check_Old_Releases_URL jammy
+            fi
+            ;;
+        noble)
+            if [ ${cur_time} -gt ${noble_deadline} ]; then
+                echo "${cur_time} > ${noble_deadline}"
+                Check_Old_Releases_URL noble
             fi
             ;;
     esac
@@ -461,10 +486,13 @@ function CentOS_Modify_Source() {
     elif echo "${CentOS_Version}" | grep -Eqi "^8" && [ "${isCentosStream}" != "y" ]; then
         Yellow_Echo "CentOS 8 is now end of life, use vault repository."
         local repo_url="https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo"
+    elif echo "${CentOS_Version}" | grep -Eqi "^9" || [ "${isCentosStream}" = "y" ]; then
+        Yellow_Echo "Using CentOS Stream 9 repository."
+        local repo_url="https://mirrors.aliyun.com/repo/centos-stream-9.repo"
     fi
 
-    mkdir /etc/yum.repos.d/bak
-    mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak/
+    mkdir -p /etc/yum.repos.d/bak
+    mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak/ 2>/dev/null || true
     curl -o /etc/yum.repos.d/CentOS-Base.repo "$repo_url"
 }
 

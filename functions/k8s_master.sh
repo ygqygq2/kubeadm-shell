@@ -27,7 +27,7 @@ kind: KubeProxyConfiguration
 mode: "${KUBE_PROXY_MODE}"
 metricsBindAddress: 0.0.0.0:10249
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
 kubernetesVersion: ${KUBEVERSION}
 imageRepository: ${IMAGE_REPOSITORY}

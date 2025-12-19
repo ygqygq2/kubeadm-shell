@@ -10,7 +10,7 @@
 
 function Docker_Pull_Images() {
     cat >/tmp/kubeadmcfg.yaml <<EOF
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
 kubernetesVersion: ${KUBEVERSION}
 imageRepository: ${IMAGE_REPOSITORY}
