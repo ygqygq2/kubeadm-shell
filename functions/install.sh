@@ -110,7 +110,7 @@ EOF
         sed -i '/registry.mirrors/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]\n\ \ \ \ \ \ \ \ \ \ endpoint = ["https://docker.m.daocloud.io", "https://registry-1.docker.io"]' /etc/containerd/config.toml
     fi
     sed -i 's#sandbox_image.*#sandbox_image = "ygqygq2/pause:3.10"#' /etc/containerd/config.toml
-    # 启用 SystemdCgroup，这是 Kubernetes 1.31 推荐的 cgroup 驱动
+    # 启用 SystemdCgroup，这是 Kubernetes 1.32 推荐的 cgroup 驱动
     if ! grep -q "SystemdCgroup = true" /etc/containerd/config.toml; then
         sed -i '/\[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options\]/a\ \ \ \ \ \ \ \ \ \ \ \ SystemdCgroup = true' /etc/containerd/config.toml
     fi

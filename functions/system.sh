@@ -92,6 +92,19 @@ net.ipv4.tcp_keepalive_probes = 10
 vm.overcommit_memory = 0
 net.ipv4.tcp_slow_start_after_idle = 0
 EOF
+
+    # 如果启用IPv6，添加IPv6相关内核参数
+    if [ "${ENABLE_IPV6}" == "true" ]; then
+        cat <<EOF >>/etc/sysctl.d/k8s.conf
+net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.all.disable_ipv6 = 0
+net.ipv6.conf.default.disable_ipv6 = 0
+net.ipv6.conf.lo.disable_ipv6 = 0
+net.ipv6.conf.default.forwarding = 1
+EOF
+        echo '启用IPv6内核参数 done! ' >>${install_log}
+    fi
+
     sysctl --system
     echo '设置开启转发内核参数 done! ' >>${install_log}
 

@@ -25,11 +25,11 @@ INSTALL_SLB="true"
 # 是否脚本生成CA证书
 GENERATE_CA="false"
 # 定义Kubernetes信息
-KUBEVERSION="v1.31.14"
+KUBEVERSION="v1.32.11"
 # 定义安装 Container runtimes: docker/containerd/crio
 INSTALL_CR="containerd"
 # docker 版本, INSTALL_CR="docker"时设置
-DOCKERVERSION="27.3.1"
+DOCKERVERSION="27.4.0"
 #
 KUBERNETES_CNI_VERSION=""
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
@@ -37,6 +37,12 @@ IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
 k8s_master_vip="10.37.129.10"
 # K8S网段
 podSubnet="10.244.0.0/16"
+# 是否启用IPv6，true为启用IPv6双栈，false为仅IPv4
+ENABLE_IPV6="false"
+# IPv6 Pod网段（仅在ENABLE_IPV6="true"时生效）
+podSubnetIPv6="fd00:10:244::/56"
+# IPv6 Service网段（仅在ENABLE_IPV6="true"时生效）
+serviceSubnetIPv6="fd00:10:96::/112"
 # kube-proxy转发模式，ipvs/iptables
 KUBE_PROXY_MODE="ipvs"
 # 可获取kubeadm join命令的节点IP

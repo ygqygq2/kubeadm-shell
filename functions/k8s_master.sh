@@ -22,7 +22,7 @@ function Install_K8s() {
         fi
 
         cat >/tmp/${HOST}/kubeadmcfg.yaml <<EOF
-apiVersion: kubeproxy.config.k8s.io/v1alpha1
+apiVersion: kubeproxy.config.k8s.io/v1
 kind: KubeProxyConfiguration
 mode: "${KUBE_PROXY_MODE}"
 metricsBindAddress: 0.0.0.0:10249
@@ -52,7 +52,20 @@ scheduler:
     bind-address: 0.0.0.0
 
 networking:
+EOF
+        # 根据IPv6配置设置网络
+        if [ "${ENABLE_IPV6}" == "true" ]; then
+            cat >>/tmp/${HOST}/kubeadmcfg.yaml <<EOF
+  podSubnet: ${podSubnet},${podSubnetIPv6}
+  serviceSubnet: 10.96.0.0/12,${serviceSubnetIPv6}
+EOF
+            echo '配置IPv6双栈网络 done! ' >>${install_log}
+        else
+            cat >>/tmp/${HOST}/kubeadmcfg.yaml <<EOF
   podSubnet: ${podSubnet}
+EOF
+        fi
+        cat >>/tmp/${HOST}/kubeadmcfg.yaml <<EOF
 
 EOF
         echo '生成kubeadm配置 done! ' >>${install_log}

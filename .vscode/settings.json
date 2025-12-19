@@ -1,0 +1,14 @@
+{
+  "turbo-ai-rules.sources": [
+    {
+      "id": "ai-rules",
+      "name": "ygqygq2's AI Rules",
+      "gitUrl": "https://github.com/ygqygq2/ai-rules.git",
+      "branch": "main",
+      "enabled": true,
+      "authentication": {
+        "type": "none"
+      }
+    }
+  ]
+}
